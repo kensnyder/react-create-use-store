@@ -1,0 +1,32 @@
+{
+  "name": "react-create-use-store",
+  "description": "You can define a store that is shared by multiple components. The store is completely functional so you can easily unit test it.",
+  "version": "0.1.0",
+  "keywords": [
+    "react",
+    "hooks",
+    "react hook",
+    "state",
+    "state management"
+  ],
+  "dependencies": {
+    "is-promise": "2.1.0",
+    "lodash.forown": "4.4.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0",
+    "react-dom": "^16.8.0"
+  },
+  "devDependencies": {
+    "jest": "^24.8.0",
+    "parcel": "^1.12.3",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6"
+  }
+}
