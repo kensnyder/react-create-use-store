@@ -38,4 +38,17 @@ describe('createStore()', () => {
 		store.reset();
 		expect(store.state).toBe(state);
 	});
+	it('should handle promises', (done) => {
+		const add = (state, addend) => {
+			return Promise.resolve(state + addend);
+		};
+		const state = 5;
+		const actions = { add };
+		const store = createStore({ state, actions });
+		store.actions.add(3);
+		setTimeout(() => {
+			expect(store.state).toBe(8);
+			done();
+		}, 0);
+	});
 });
