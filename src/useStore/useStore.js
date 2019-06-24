@@ -18,6 +18,6 @@ export function useStore(store) {
 	return {
 		state,
 		actions: store.actions,
-		reset: store.reset
+		reset: store.reset,
 	};
 }

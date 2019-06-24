@@ -11,20 +11,20 @@ import isPromise from "is-promise";
  * @property {Object} state - The current value of the state
  * @property {Object} actions - Methods that can be called to return a new state
  * @property {Function} reset - Reset the store's state to its original value
- * @property {Function} setState - Directly set the store's state
  * @property {Function[]} _setters - A list of setters that were added using useStore()
  * @property {Function} _subscribe - A method to add a setState callback that should be notified on changes
  * @property {Function} _unsubscribe - A method to remove a setState callback
+ * @property {Function} _setAll - Directly set the store's state
  */
 export function createStore({ state = {}, actions = {}, autoReset = false }) {
 	const store = {
 		state,
 		actions: {},
 		reset: () => _setAll(state),
-		setState: _setAll,
 		_setters: [],
 		_subscribe,
-		_unsubscribe
+		_unsubscribe,
+		_setAll,
 	};
 
 	forOwn(actions, (action, name) => {
