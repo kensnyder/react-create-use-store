@@ -7,7 +7,10 @@ import isPromise from "is-promise";
  * @property {Object} [config.state] - The store's initial state. It can be of any type.
  * @property {Object} [config.actions] - Named functions that can be dispatched by name and payload.
  * @property {Boolean} [config.autoReset] - If true, reset the store when all user components unmount
- * @property {Function} [config.afterFirstMount] - Callback when store is used for the first time
+ * @property {Function} [config.onFirstUse] - Callback the very first time a component calls useStore()
+ * @property {Function} [config.afterFirstMount] - Callback when a useStore() component mounts when no other are mounted
+ * @property {Function} [config.afterEachMount] - Callback every time a component calls useStore()
+ * @property {Function} [config.afterEachUnmount] - Callback when any useStore() component unmounts
  * @property {Function} [config.afterLastUnmount] - Callback when all user components unmount
  * @return {Object} store - Info and methods for working with the store
  * @property {Object} state - The current value of the state
@@ -22,7 +25,10 @@ export function createStore({
 	state = {},
 	actions = {},
 	autoReset = false,
+	onFirstUse = () => {},
 	afterFirstMount = () => {},
+	afterEachMount = () => {},
+	afterEachUnmount = () => {},
 	afterLastUnmount = () => {},
 }) {
 	// define the store
@@ -34,6 +40,7 @@ export function createStore({
 		_subscribe,
 		_unsubscribe,
 		_setAll,
+		_useCount: 0,
 	};
 
 	// build the actions
@@ -48,7 +55,7 @@ export function createStore({
 		};
 	});
 
-	// return this tore
+	// return this store
 	return store;
 
 	//
@@ -61,11 +68,15 @@ export function createStore({
 	 * @private
 	 */
 	function _subscribe(setState) {
+		if (store._useCount++ === 0) {
+			onFirstUse();
+		}
 		if (store._setters.length === 0) {
 			afterFirstMount();
 		}
 		if (!store._setters.indexOf(setState) > -1) {
 			store._setters.push(setState);
+			afterEachMount();
 		}
 	}
 
@@ -76,6 +87,7 @@ export function createStore({
 	 */
 	function _unsubscribe(setState) {
 		store._setters = store._setters.filter(setter => setter !== setState);
+		afterEachUnmount();
 		if (store._setters.length === 0) {
 			if (autoReset) {
 				store.state = state;

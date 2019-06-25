@@ -78,7 +78,7 @@ describe('useStore() state management', () => {
 		expect(rendered.find('span').text()).toBe('grid');
 	});
 });
-describe('useStore() mount/unmount', () => {
+describe('useStore() first mount, last unmount', () => {
 	// set up enzyme
 	configure({ adapter: new Adapter() });
 	// define store before each test
@@ -121,5 +121,61 @@ describe('useStore() mount/unmount', () => {
 		expect(unmountCount).toBe(1);
 		rendered1a.unmount();
 		expect(unmountCount).toBe(2);
+	});
+});
+describe('useStore() each mount/unmount', () => {
+	// set up enzyme
+	configure({ adapter: new Adapter() });
+	// define store before each test
+	let store, mountCount, unmountCount;
+	beforeEach(() => {
+		mountCount = 0;
+		unmountCount = 0;
+		const afterEachMount = () => mountCount++;
+		const afterEachUnmount = () => unmountCount++;
+		store = createStore({ afterEachMount, afterEachUnmount });
+	});
+	it('should use proper callbacks', () => {
+		const Component1 = () => {
+			useStore(store);
+			return <div>One</div>
+		};
+		const Component2 = () => {
+			useStore(store);
+			return <div>Two</div>
+		};
+		const rendered1a = mount(<Component1 />);
+		expect(mountCount).toBe(1);
+		const rendered2a = mount(<Component2 />);
+		expect(mountCount).toBe(2);
+		rendered1a.unmount();
+		expect(unmountCount).toBe(1);
+		rendered2a.unmount();
+		expect(unmountCount).toBe(2);
+	});
+});
+describe('useStore() onFirstUse', () => {
+	// set up enzyme
+	configure({ adapter: new Adapter() });
+	// define store before each test
+	let store, callbackCount;
+	beforeEach(() => {
+		callbackCount = 0;
+		const onFirstUse = () => callbackCount++;
+		store = createStore({ onFirstUse });
+	});
+	it('should use proper callbacks', () => {
+		const Component1 = () => {
+			useStore(store);
+			return <div>One</div>
+		};
+		const Component2 = () => {
+			useStore(store);
+			return <div>Two</div>
+		};
+		mount(<Component1 />);
+		expect(callbackCount).toBe(1);
+		mount(<Component2 />);
+		expect(callbackCount).toBe(1);
 	});
 });
