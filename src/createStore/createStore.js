@@ -1,6 +1,9 @@
 import forOwn from "lodash.forown";
 import isPromise from "is-promise";
 
+let storeIdx = 0;
+const middlewares = [];
+
 /**
  * Creates a new store
  * @param {Object} [config] - An object containing the store setup
@@ -30,10 +33,15 @@ export function createStore({
 	afterEachMount = () => {},
 	afterEachUnmount = () => {},
 	afterLastUnmount = () => {},
+	id = null,
 }) {
+
+	let currState = state;
+
 	// define the store
 	const store = {
-		state,
+		id: id || storeIdx,
+		getState: () => currState,
 		actions: {},
 		reset: () => _setAll(state),
 		_setters: [],
@@ -43,17 +51,30 @@ export function createStore({
 		_useCount: 0,
 	};
 
-	// build the actions
+	// build the actions, allowing for middleware
 	forOwn(actions, (action, name) => {
 		store.actions[name] = (...args) => {
-			const newState = action(store.state, ...args);
-			if (isPromise(newState)) {
-				newState.then(_setAll, () => {});
-			} else {
-				_setAll(newState);
-			}
+			const setState = newState => currState = newState;
+			let idx = 0;
+			let next = () => {
+				if (middlewares[idx]) {
+					idx++;
+					middlewares[idx - 1]({ store, state: currState, setState, action, name, args }, next);
+				}
+				else {
+					const newState = action(currState, ...args);
+					if (isPromise(newState)) {
+						newState.then(_setAll, () => {});
+					} else {
+						_setAll(newState);
+					}
+				}
+			};
+			next();
 		};
 	});
+
+	storeIdx++;
 
 	// return this store
 	return store;
@@ -90,7 +111,7 @@ export function createStore({
 		afterEachUnmount();
 		if (store._setters.length === 0) {
 			if (autoReset) {
-				store.state = state;
+				currState = state;
 			}
 			afterLastUnmount();
 		}
@@ -103,6 +124,17 @@ export function createStore({
 	 */
 	function _setAll(newState) {
 		store._setters.forEach(setter => setter(newState));
-		store.state = newState;
+		currState = state;
+	}
+}
+
+export function addMiddleware(handler) {
+	middlewares.push(handler);
+}
+
+export function removeMiddleware(handler) {
+	const idx = middlewares.indexOf(handler);
+	if (idx > -1) {
+		middlewares.splice(idx, 1);
 	}
 }

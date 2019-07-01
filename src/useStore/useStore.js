@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
  * @property {Function} reset - function to reset the store's state to its initial value
  */
 export function useStore(store) {
-	const [state, setState] = useState(store.state);
+	const [state, setState] = useState(store.getState());
 
 	useEffect(() => {
 		store._subscribe(setState);

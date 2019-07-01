@@ -14,10 +14,10 @@
     "lodash.forown": "4.4.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "install": "npx parcel-bundler build dist.js -d dist",
+    "build": "npx parcel-bundler build dist.js -d dist",
+    "test": "npx jest",
+    "watch": "npx jest --watch"
   },
   "peerDependencies": {
     "react": "^16.8.0",

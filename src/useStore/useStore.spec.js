@@ -1,8 +1,9 @@
 import React from 'react';
 import { configure, mount } from 'enzyme';
+import { act } from 'react-dom/test-utils';
 import Adapter from 'enzyme-adapter-react-16';
 import { useStore } from './useStore.js';
-import { createStore } from '../createStore/createStore.js';
+import { createStore, addMiddleware, removeMiddleware } from '../createStore/createStore.js';
 
 describe('useStore() state management', () => {
 	// set up enzyme
@@ -177,5 +178,112 @@ describe('useStore() onFirstUse', () => {
 		expect(callbackCount).toBe(1);
 		mount(<Component2 />);
 		expect(callbackCount).toBe(1);
+	});
+});
+describe('useStore() basic middleware', () => {
+	// set up enzyme
+	configure({ adapter: new Adapter() });
+	let logs, store;
+	// define a test middleware
+	const logger = ({store, action, name, args}, next) => {
+		logs.push({ total: store.getState().total, name, args });
+		next();
+	};
+	beforeAll(() => {
+		logs = [];
+		// define store before each test
+		addMiddleware(logger);
+		const state = { total: 0 };
+		const actions = {
+			add(state, amount) {
+				return { ...state, total: state.total + amount };
+			},
+			sub(state, amount) {
+				return { ...state, total: state.total - amount };
+			}
+		};
+		store = createStore({ state, actions });
+	});
+	afterAll(() => {
+		removeMiddleware(logger);
+	});
+	it('should allow middleware', () => {
+		const Component = () => {
+			const { state, actions: { add, sub } } = useStore(store);
+			return (
+				<div>
+					<button id="add2" onClick={() => add(2)}>+2</button>
+					<button id="sub1" onClick={() => sub(1)}>-1</button>
+					<span>{state.total}</span>
+				</div>
+			);
+		};
+		const rendered = mount(<Component />);
+		expect(logs).toHaveLength(0);
+		expect(rendered.find('span').text()).toBe('0');
+		rendered.find('#add2').simulate('click');
+		expect(logs).toHaveLength(1);
+		expect(logs).toEqual([{
+			total: 0,
+			name: 'add',
+			args: [2],
+		}]);
+		expect(rendered.find('span').text()).toBe('2');
+		rendered.find('#sub1').simulate('click');
+		expect(logs).toHaveLength(2);
+		expect(logs[1]).toEqual({
+			total: 2,
+			name: 'sub',
+			args: [1],
+		});
+	});
+});
+describe('useStore() asynchronous middleware', () => {
+	// set up enzyme
+	configure({ adapter: new Adapter() });
+	let store;
+	// define a test middleware
+	const incrementer = ({ store, state, setState, action, name, args }, next) => {
+		setState({ ...state, total: state.total + 1 });
+		setTimeout(() => {
+			act(next);
+		}, 50);
+	};
+	beforeAll(() => {
+		// define store before each test
+		addMiddleware(incrementer);
+		const state = { total: 0 };
+		const actions = {
+			add(state, amount) {
+				return { ...state, total: state.total + amount };
+			},
+			sub(state, amount) {
+				return { ...state, total: state.total - amount };
+			}
+		};
+		store = createStore({ state, actions });
+	});
+	afterAll(() => {
+		removeMiddleware(incrementer);
+	});
+	it('should allow middleware', (done) => {
+		const Component = () => {
+			const { state, actions: { add, sub } } = useStore(store);
+			return (
+				<div>
+					<button id="add2" onClick={() => add(2)}>+2</button>
+					<button id="sub1" onClick={() => sub(1)}>-1</button>
+					<span>{state.total}</span>
+				</div>
+			);
+		};
+		const rendered = mount(<Component />);
+		expect(rendered.find('span').text()).toBe('0');
+		rendered.find('#add2').simulate('click');
+		expect(rendered.find('span').text()).toBe('0');
+		setTimeout(() => {
+			expect(rendered.find('span').text()).toBe('3');
+			done();
+		}, 100);
 	});
 });
