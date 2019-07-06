@@ -1,19 +1,23 @@
 # react-create-use-store
 
-State management for React using hooks
+Simple state management for React using hooks
 
 ## Features
 
-1. Stores are easily unit testable
+1. Instead of reducers or observables, define "actions": 
+   functions that take current state and return new state 
+1. Store actions are easily testable
 1. Stores can respond to unmount events (e.g. to abort fetching data)
+1. A store can be used by one component or many components
 1. Stores are included by only the components that need them
-1. Middleware to intercept, modify or block actions
+1. Stores allow defining middleware to intercept, modify or block actions
 
 ## Use
 
-Define a initial state and action functions to use in your components:
+Define your store's initial state and action functions:
 
 ```js
+// initial state
 const state = {
   view: 'list',
   stories: [
@@ -21,26 +25,28 @@ const state = {
     { image: '/grape.png', title: 'Foo', descr: 'Bar' },
   ]
 };
+
+// export action functions so they can be unit testable
+export function showList(state) {
+  return { ...state, view: 'list' };
+}
+export function showGrid(state) {
+  return { ...state, view: 'grid' };
+}
+
+// list of action functions
 const actions = {
   showList,
   showGrid,
 };
 
+// create and export the store
 export const storyStore = createStore({ state, actions });
-
-export function showList(state) {
-  return { ...state, view: 'list' };
-}
-
-export function showGrid(state) {
-  return { ...state, view: 'grid' };
-}
 ```
 
 Then use it in one or more components:
-
 ```js
-import { storyStore } from '../stores/storyStore.js';
+import { storyStore } from '../Stories/storyStore.js';
 
 export function StoryItem({ story }) {
 	const { state } = useStore(storyStore);

@@ -242,7 +242,7 @@ describe('useStore() asynchronous middleware', () => {
 	// set up enzyme
 	configure({ adapter: new Adapter() });
 	let store;
-	// define a test middleware
+	// define an asynchronous middleware
 	const incrementer = ({ store, state, setState, action, name, args }, next) => {
 		setState({ ...state, total: state.total + 1 });
 		setTimeout(() => {
@@ -266,7 +266,7 @@ describe('useStore() asynchronous middleware', () => {
 	afterAll(() => {
 		removeMiddleware(incrementer);
 	});
-	it('should allow middleware', (done) => {
+	it('should process middleware', (done) => {
 		const Component = () => {
 			const { state, actions: { add, sub } } = useStore(store);
 			return (

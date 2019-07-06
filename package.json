@@ -1,23 +1,25 @@
 {
   "name": "react-create-use-store",
-  "description": "You can define a store that is shared by multiple components. The store is completely functional so you can easily unit test it.",
-  "version": "0.1.0",
+  "description": "Simple state management for React using hooks",
+  "version": "1.0.0",
   "keywords": [
     "react",
     "hooks",
     "react hook",
+    "react hooks",
     "state",
-    "state management"
+    "state management",
+    "middleware"
   ],
   "dependencies": {
     "is-promise": "2.1.0",
     "lodash.forown": "4.4.0"
   },
   "scripts": {
-    "install": "npx parcel-bundler build dist.js -d dist",
     "build": "npx parcel-bundler build dist.js -d dist",
+    "watc": "npx parcel-bundler watch dist.js -d dist",
     "test": "npx jest",
-    "watch": "npx jest --watch"
+    "test-watch": "npx jest --watch"
   },
   "peerDependencies": {
     "react": "^16.8.0",
