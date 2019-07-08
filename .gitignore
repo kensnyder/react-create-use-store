@@ -14,8 +14,6 @@
 
 # parcel
 .cache
-dist/*.js
-dist/*.js.map
 
 # sonar scanner
 .scannerwork

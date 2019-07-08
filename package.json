@@ -1,7 +1,14 @@
 {
   "name": "react-create-use-store",
   "description": "Simple state management for React using hooks",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "main": "dist/dist.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kensnyder/creact-create-use-store.git"
+  },
+  "author": "kendsnyder@gmail.com",
+  "license": "ISC",
   "keywords": [
     "react",
     "hooks",
@@ -17,7 +24,7 @@
   },
   "scripts": {
     "build": "npx parcel-bundler build dist.js -d dist",
-    "watc": "npx parcel-bundler watch dist.js -d dist",
+    "watch": "npx parcel-bundler watch dist.js -d dist",
     "test": "npx jest",
     "test-watch": "npx jest --watch"
   },
