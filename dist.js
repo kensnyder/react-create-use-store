@@ -1,4 +1,2 @@
-import * as create from './src/createStore/createStore.js';
-import * as use from './src/useStore/useStore.js';
-
-export default { ...create, ...use };
+export { createStore, addMiddleware, removeMiddleware } from './src/createStore/createStore.js';
+export { useStore } from './src/useStore/useStore.js';

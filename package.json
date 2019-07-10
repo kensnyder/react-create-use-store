@@ -1,7 +1,7 @@
 {
   "name": "react-create-use-store",
   "description": "Simple state management for React using hooks",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/dist.js",
   "repository": {
     "type": "git",
