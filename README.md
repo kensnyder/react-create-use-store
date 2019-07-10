@@ -12,11 +12,17 @@ Simple state management for React using hooks
 1. Stores are included by only the components that need them
 1. Stores allow defining middleware to intercept, modify or block actions
 
+## Try it
+
+[CodeSandbox Example](https://codesandbox.io/s/rlm4k281mq)
+
 ## Use
 
 Define your store's initial state and action functions:
 
 ```js
+import { createStore } from 'react-create-use-store';
+
 // initial state
 const state = {
   view: 'list',
@@ -46,6 +52,7 @@ export const storyStore = createStore({ state, actions });
 
 Then use it in one or more components:
 ```js
+import { useStore } from 'react-create-use-store';
 import { storyStore } from '../Stories/storyStore.js';
 
 export function StoryItem({ story }) {
