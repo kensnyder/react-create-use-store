@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useDebugValue } from "react";
 
 /**
  * @param {Object} store - A store created with createStore()
@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
  */
 export function useStore(store) {
 	const [state, setState] = useState(store.getState());
+	useDebugValue({ storeId: store.id, state });
 
 	useEffect(() => {
 		store._subscribe(setState);

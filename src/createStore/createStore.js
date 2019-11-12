@@ -15,13 +15,16 @@ const middlewares = [];
  * @property {Function} [config.afterEachMount] - Callback every time a component calls useStore()
  * @property {Function} [config.afterEachUnmount] - Callback when any useStore() component unmounts
  * @property {Function} [config.afterLastUnmount] - Callback when all user components unmount
+ * @property {Function} [config.onActionPromiseReject] - Callback when an action returns a promise that rejects
+ * @property {String} [config.id] - The id string which middleware can use to
  * @return {Object} store - Info and methods for working with the store
- * @property {Object} getState - Get the current value of the state
- * @property {Object} actions - Methods that can be called to return a new state
- * @property {Function} reset - Reset the store's state to its original value
- * @property {Function} _subscribe - A method to add a setState callback that should be notified on changes
- * @property {Function} _unsubscribe - A method to remove a setState callback
- * @property {Function} _usedCount - The number of components that have ever used this store
+ * @property {String} store.id - The id or number of the store
+ * @property {Function} store.getState - Get the current state of the store
+ * @property {Object} store.actions - Methods that can be called to affect state
+ * @property {Function} store.reset - Reset the store's state to its original value
+ * @property {Function} store._subscribe - A method to add a setState callback that should be notified on changes
+ * @property {Function} store._unsubscribe - A method to remove a setState callback
+ * @property {Number} store._usedCount - The number of components that have ever used this store
  */
 export function createStore({
 	state = {},
@@ -32,6 +35,7 @@ export function createStore({
 	afterEachMount = () => {},
 	afterEachUnmount = () => {},
 	afterLastUnmount = () => {},
+	onActionPromiseReject = () => {},
 	id = null,
 }) {
 
@@ -43,7 +47,7 @@ export function createStore({
 	// define the store
 	const store = {
 		// an identifier that middleware may be interested
-		id: id || storeIdx,
+		id: String(id || `store-${storeIdx++}`),
 		// A store's state can only be set by actions and middleware
 		// A store's state can be read at any time
 		getState: () => currState,
@@ -51,6 +55,8 @@ export function createStore({
 		actions: {},
 		// A store's state can be reset to its original value
 		reset: () => _setAll(state),
+		// store users should not directly set state, but a store might
+		setState: _setAll,
 		// private: useStore() can subscribe to all store changes
 		_subscribe,
 		// private: useStore() can unsubscribe from changes
@@ -77,7 +83,7 @@ export function createStore({
 					const newState = action(currState, ...args);
 					if (isPromise(newState)) {
 						// handle actions that return a Promise
-						newState.then(_setAll, () => {});
+						newState.then(_setAll, onActionPromiseReject);
 					} else {
 						// treat action's output as the new state
 						_setAll(newState);
@@ -87,8 +93,6 @@ export function createStore({
 			next();
 		};
 	});
-
-	storeIdx++;
 
 	// return this store
 	return store;
@@ -138,7 +142,6 @@ export function createStore({
 	 */
 	function _setAll(newState) {
 		_setters.forEach(setter => setter(newState));
-		currState = newState;
 	}
 }
 
