@@ -1,4 +1,4 @@
-import { useState, useEffect, useDebugValue } from "react";
+import { useState, useEffect, useDebugValue } from 'react';
 
 /**
  * @param {Object} store - A store created with createStore()
@@ -8,17 +8,17 @@ import { useState, useEffect, useDebugValue } from "react";
  * @property {Function} reset - function to reset the store's state to its initial value
  */
 export function useStore(store) {
-	const [state, setState] = useState(store.getState());
-	useDebugValue({ storeId: store.id, state });
+  const [state, setState] = useState(store._getState());
+  useDebugValue({ storeId: store.id, state });
 
-	useEffect(() => {
-		store._subscribe(setState);
-		return () => store._unsubscribe(setState);
-	}, [store]);
+  useEffect(() => {
+    store._subscribe(setState);
+    return () => store._unsubscribe(setState);
+  }, [store]);
 
-	return {
-		state,
-		actions: store.actions,
-		reset: store.reset,
-	};
+  return {
+    state,
+    actions: store._actions,
+    reset: store.reset,
+  };
 }
