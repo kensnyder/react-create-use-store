@@ -1,4 +1,6 @@
+// an internal counter for stores
 let storeIdx = 0;
+// list of middleware functions that augment actions
 const middlewares = [];
 
 /**
@@ -44,10 +46,12 @@ export function createStore({
   // define the store
   const store = {
     // an identifier that middleware may be interested
-    id: String(id || `store-${storeIdx++}`),
+    id: String(id || `store-${storeIdx}`),
+    // internal counter
+    idx: storeIdx,
     // A store's state can be reset to its original value
     reset: () => _setAll(state),
-    // add action functions to this state
+    // add more action functions to this state
     addActions,
     // private: functions that will act on state
     _actions: {},
@@ -60,6 +64,8 @@ export function createStore({
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
   };
+
+  storeIdx++;
 
   // add any actions that are given at this time
   addActions(actions);
@@ -123,11 +129,11 @@ export function createStore({
       onFirstUse();
     }
     if (_setters.length === 0) {
-      afterFirstMount();
+      afterFirstMount([currState, _setAll]);
     }
     if (!_setters.indexOf(setState) > -1) {
       _setters.push(setState);
-      afterEachMount();
+      afterEachMount([currState, _setAll]);
     }
   }
 
@@ -138,12 +144,12 @@ export function createStore({
    */
   function _unsubscribe(setState) {
     _setters = _setters.filter(setter => setter !== setState);
-    afterEachUnmount();
+    afterEachUnmount([currState, _setAll]);
     if (_setters.length === 0) {
       if (autoReset) {
         store.reset();
       }
-      afterLastUnmount();
+      afterLastUnmount([currState, _setAll]);
     }
   }
 
