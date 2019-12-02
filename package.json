@@ -1,7 +1,7 @@
 {
   "name": "react-create-use-store",
   "description": "Simple state management for React using hooks",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "main": "dist.js",
   "repository": {
     "type": "git",
@@ -16,12 +16,14 @@
     "react hooks",
     "state",
     "state management",
+    "global state",
     "middleware"
   ],
   "dependencies": {},
   "scripts": {
     "test": "npx jest",
-    "test-watch": "npx jest --watch"
+    "test-watch": "npx jest --watch",
+    "build": "echo 'build not yet defined' && exit 1"
   },
   "peerDependencies": {
     "react": ">=16.8.0",
@@ -36,7 +38,7 @@
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.14.0",
     "jest": "^24.8.0",
-    "parcel-bundler": "^1.12.3",
+    "parcel-bundler": "^1.12.4",
     "prettier": "^1.19.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6"

@@ -8,16 +8,17 @@ const middlewares = [];
  * @param {Object} [config] - An object containing the store setup
  * @property {Object} [config.state] - The store's initial state. It can be of any type.
  * @property {Object} [config.actions] - Named functions that can be dispatched by name and payload.
- * @property {Boolean} [config.autoReset] - If true, reset the store when all user components unmount
+ * @property {Boolean} [config.autoReset] - If true, reset the store when all consumer components unmount
  * @property {Function} [config.onFirstUse] - Callback the very first time a component calls useStore()
  * @property {Function} [config.afterFirstMount] - Callback when a useStore() component mounts when no other are mounted
- * @property {Function} [config.afterEachMount] - Callback every time a component calls useStore()
+ * @property {Function} [config.afterEachMount] - Callback every time a component first calls useStore()
  * @property {Function} [config.afterEachUnmount] - Callback when any useStore() component unmounts
  * @property {Function} [config.afterLastUnmount] - Callback when all user components unmount
- * @property {Function} [config.onActionPromiseReject] - Callback when an action returns a promise that rejects
- * @property {String} [config.id] - The id string which middleware can use to
+ * @property {Function} [config.onMiddlewareError] - Callback when a middleware throws an exception
+ * @property {String} [config.id] - The id string which middleware can use to tell stores apart
  * @return {Object} store - Info and methods for working with the store
  * @property {String} store.id - The id or number of the store
+ * @property {Number} store.idx - The index order of the store in order of definition
  * @property {Function} store.addActions - Register more actions for this store
  * @property {Function} store.reset - Reset the store's state to its original value
  * @property {Object} store._actions - Methods that can be called to affect state
@@ -93,7 +94,7 @@ export function createStore({
           const middleware = middlewares[idx - 1];
           if (middleware) {
             // one or more middlewares left to run
-            const inputs = [[currState, _setAll], { action, name, args }];
+            const inputs = [currState, _setAll, { action, name, args }];
             try {
               // call this middleware
               middleware(...inputs, next);
@@ -111,7 +112,7 @@ export function createStore({
             }
           } else {
             // all middlewares have run; call the action
-            action([currState, _setAll], ...args);
+            action(currState, _setAll, ...args);
           }
         };
         next();
@@ -126,14 +127,14 @@ export function createStore({
    */
   function _subscribe(setState) {
     if (store._usedCount++ === 0) {
-      onFirstUse();
+      onFirstUse(currState, _setAll, store);
     }
     if (_setters.length === 0) {
-      afterFirstMount([currState, _setAll]);
+      afterFirstMount(currState, _setAll, store);
     }
     if (!_setters.indexOf(setState) > -1) {
       _setters.push(setState);
-      afterEachMount([currState, _setAll]);
+      afterEachMount(currState, _setAll, store);
     }
   }
 
@@ -144,12 +145,12 @@ export function createStore({
    */
   function _unsubscribe(setState) {
     _setters = _setters.filter(setter => setter !== setState);
-    afterEachUnmount([currState, _setAll]);
+    afterEachUnmount(currState, _setAll, store);
     if (_setters.length === 0) {
       if (autoReset) {
         store.reset();
       }
-      afterLastUnmount([currState, _setAll]);
+      afterLastUnmount(currState, _setAll, store);
     }
   }
 
