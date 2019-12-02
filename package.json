@@ -18,10 +18,7 @@
     "state management",
     "middleware"
   ],
-  "dependencies": {
-    "is-promise": "2.1.0",
-    "lodash.forown": "4.4.0"
-  },
+  "dependencies": {},
   "scripts": {
     "test": "npx jest",
     "test-watch": "npx jest --watch"
@@ -40,6 +37,7 @@
     "enzyme-adapter-react-16": "^1.14.0",
     "jest": "^24.8.0",
     "parcel-bundler": "^1.12.3",
+    "prettier": "^1.19.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6"
   }
