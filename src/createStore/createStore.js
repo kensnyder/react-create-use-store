@@ -58,6 +58,7 @@ export function createStore({
     _actions: {},
     // private: get the current state
     _getState: () => currState,
+    // _setState: newState => (currState = newState),
     // private: useStore() can subscribe to all store changes
     _subscribe,
     // private: useStore() can unsubscribe from changes
@@ -132,7 +133,7 @@ export function createStore({
     if (_setters.length === 0) {
       afterFirstMount(currState, _setAll, store);
     }
-    if (!_setters.indexOf(setState) > -1) {
+    if (_setters.indexOf(setState) === -1) {
       _setters.push(setState);
       afterEachMount(currState, _setAll, store);
     }
@@ -160,8 +161,12 @@ export function createStore({
    * @private
    */
   function _setAll(newState) {
+    console.log('_setAll', newState);
+    if (typeof newState === 'function') {
+      newState = newState(currState);
+    }
     currState = newState;
-    _setters.forEach(setter => setter(currState));
+    _setters.forEach(setter => setter(newState));
   }
 }
 

@@ -10,6 +10,7 @@ describe('createStore()', () => {
   it('should save state', () => {
     const state = { count: 5 };
     const store = createStore({ state });
+    console.log('l13', store._getState());
     expect(store._getState()).toBe(state);
   });
   it('should build actions', () => {
@@ -18,7 +19,7 @@ describe('createStore()', () => {
     expect(typeof store._actions.add).toBe('function');
   });
   it('should build actions and manipulate state', () => {
-    const add = ([state, setState], addend) => {
+    const add = (state, setState, addend) => {
       setState({ ...state, count: state.count + addend });
     };
     const state = { count: 5 };
@@ -28,7 +29,7 @@ describe('createStore()', () => {
     expect(store._getState().count).toBe(8);
   });
   it('should allow resetting', () => {
-    const add = ([state, setState], addend) => {
+    const add = (state, setState, addend) => {
       setState({ ...state, count: state.count + addend });
     };
     const state = { count: 5 };
@@ -39,9 +40,9 @@ describe('createStore()', () => {
     expect(store._getState()).toBe(state);
   });
   it('should allow async setState', done => {
-    const add = ([state, setState], addend) => {
+    const add = (state, setState, addend) => {
       Promise.resolve(state.total + addend).then(total => {
-        setState({ ...state, total });
+        setState(old => ({ ...old, total }));
       });
     };
     const state = { foo: 'bar', total: 5 };
@@ -51,6 +52,6 @@ describe('createStore()', () => {
     setTimeout(() => {
       expect(store._getState()).toEqual({ foo: 'bar', total: 8 });
       done();
-    }, 50);
+    }, 500);
   });
 });

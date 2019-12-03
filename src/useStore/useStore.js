@@ -9,7 +9,9 @@ import { useState, useEffect, useDebugValue } from 'react';
  */
 export function useStore(store) {
   const [state, setState] = useState(store._getState());
-  useDebugValue({ storeIdx: store.idx, storeId: store.id, state });
+  console.log('************** useStore', store._getState(), state);
+  // store._setState(state);
+  useDebugValue({ state, store });
 
   useEffect(() => {
     store._subscribe(setState);

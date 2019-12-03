@@ -1,108 +1,95 @@
 import React from 'react';
-import { configure, mount } from 'enzyme';
-import { act } from 'react-dom/test-utils';
-import Adapter from 'enzyme-adapter-react-16';
+import { renderHook } from '@testing-library/react-hooks';
 import { useStore } from './useStore.js';
 import {
   createStore,
   addMiddleware,
   removeMiddleware,
 } from '../createStore/createStore.js';
-//
+
 // describe('useStore() state management', () => {
-//   // set up enzyme
-//   configure({ adapter: new Adapter() });
 //   // define store before each test
 //   let store;
 //   beforeEach(() => {
 //     const state = { view: 'grid' };
 //     const actions = {
-//       setView([state, setState], view) {
-//         setState({ ...state, view });
+//       setView(state, setState, view) {
+//         setState(old => ({ ...old, view }));
 //       },
 //     };
 //     store = createStore({ state, actions });
 //   });
-//   it('should have initial state', () => {
-//     const Component = () => {
-//       const { state } = useStore(store);
-//       return <div>{state.view}</div>;
-//     };
-//     const rendered = mount(<Component />);
-//     expect(rendered.text()).toBe('grid');
-//   });
-//   it('should respond to actions', () => {
-//     const Component = () => {
-//       const { state, actions } = useStore(store);
-//       return (
-//         <div>
-//           <button onClick={() => actions.setView('list')}>Show List</button>
-//           <span>{state.view}</span>
-//         </div>
-//       );
-//     };
-//     const rendered = mount(<Component />);
-//     expect(rendered.find('span').text()).toBe('grid');
+// it('should have initial state', () => {
+//   // set up
+//   const useIt = () => useStore(store);
+//   const { result } = renderHook(useIt);
+//   // check initial state
+//   expect(result.current.state.view).toBe('grid');
+// });
+// it('should respond to actions', async () => {
+//   // set up
+//   const useIt = () => useStore(store);
+//   const { result, waitForNextUpdate } = renderHook(useIt);
+//   // call an action
+//   result.current.actions.setView('list');
+//   // wait for store to be updated
+//   await waitForNextUpdate();
+//   // check that state is updated
+//   expect(result.current.state.view).toBe('list');
+// });
+// it('should allow resetting', () => {
+//   const Component = () => {
+//     const { state, actions, reset } = useStore(store);
+//     return (
+//       <div>
+//         <button onClick={() => actions.setView('list')}>Show List</button>
+//         <a href={null} onClick={reset}>
+//           Reset
+//         </a>
+//         <span>{state.view}</span>
+//       </div>
+//     );
+//   };
+//   const rendered = mount(<Component />);
+//   expect(rendered.find('span').text()).toBe('grid');
 //
-//     act(() => {
-//       rendered.find('button').simulate('click');
-//     });
-//     rendered.update();
-//     expect(rendered.find('span').text()).toBe('list');
+//   act(() => {
+//     rendered.find('button').simulate('click');
 //   });
-//   it('should allow resetting', () => {
-//     const Component = () => {
-//       const { state, actions, reset } = useStore(store);
-//       return (
-//         <div>
-//           <button onClick={() => actions.setView('list')}>Show List</button>
-//           <a href={null} onClick={reset}>
-//             Reset
-//           </a>
-//           <span>{state.view}</span>
-//         </div>
-//       );
-//     };
-//     const rendered = mount(<Component />);
-//     expect(rendered.find('span').text()).toBe('grid');
-//
-//     act(() => {
-//       rendered.find('button').simulate('click');
-//     });
-//     rendered.update();
-//     expect(rendered.find('span').text()).toBe('list');
-//     act(() => {
-//       rendered.find('a').simulate('click');
-//     });
-//     rendered.update();
-//     expect(rendered.find('span').text()).toBe('grid');
+//   rendered.update();
+//   expect(rendered.find('span').text()).toBe('list');
+//   act(() => {
+//     rendered.find('a').simulate('click');
 //   });
-//   it('should call afterFirstMount', () => {
-//     const Component = () => {
-//       const { state, actions, reset } = useStore(store);
-//       return (
-//         <div>
-//           <button onClick={() => actions.setView('list')}>Show List</button>
-//           <a href={null} onClick={reset}>
-//             Reset
-//           </a>
-//           <span>{state.view}</span>
-//         </div>
-//       );
-//     };
-//     const rendered = mount(<Component />);
-//     expect(rendered.find('span').text()).toBe('grid');
-//     act(() => {
-//       rendered.find('button').simulate('click');
-//     });
-//     rendered.update();
-//     expect(rendered.find('span').text()).toBe('list');
-//     act(() => {
-//       rendered.find('a').simulate('click');
-//     });
-//     rendered.update();
-//     expect(rendered.find('span').text()).toBe('grid');
+//   rendered.update();
+//   expect(rendered.find('span').text()).toBe('grid');
+// });
+// it('should call afterFirstMount', () => {
+//   const Component = () => {
+//     const { state, actions, reset } = useStore(store);
+//     return (
+//       <div>
+//         <button onClick={() => actions.setView('list')}>Show List</button>
+//         <a href={null} onClick={reset}>
+//           Reset
+//         </a>
+//         <span>{state.view}</span>
+//       </div>
+//     );
+//   };
+//   const rendered = mount(<Component />);
+//   expect(rendered.find('span').text()).toBe('grid');
+//   act(() => {
+//     rendered.find('button').simulate('click');
 //   });
+//   rendered.update();
+//   expect(rendered.find('span').text()).toBe('list');
+//   act(() => {
+//     rendered.find('a').simulate('click');
+//   });
+//   rendered.update();
+//   expect(rendered.find('span').text()).toBe('grid');
+// });
 // });
 // describe('useStore() first mount, last unmount', () => {
 //   // set up enzyme
@@ -278,73 +265,73 @@ import {
 //     });
 //   });
 // });
-describe('useStore() asynchronous middleware', () => {
-  // set up enzyme
-  configure({ adapter: new Adapter() });
-  let store;
-  // define an asynchronous middleware
-  const doubler = ([state, setState], { action, name, args }, next) => {
-    setTimeout(() => {
-      setState({ ...state, total: state.total * 2 });
-      act(next);
-    }, 50);
-  };
-  beforeAll(() => {
-    // define store before each test
-    addMiddleware(doubler);
-    const state = { total: 3 };
-    const actions = {
-      add([state, setState], amount) {
-        act(() => {
-          setState({ ...state, total: state.total + amount });
-        });
-      },
-      sub([state, setState], amount) {
-        act(() => {
-          setState({ ...state, total: state.total - amount });
-        });
-      },
-    };
-    store = createStore({ state, actions });
-  });
-  afterAll(() => {
-    removeMiddleware(doubler);
-  });
-  it('should process middleware', done => {
-    const Component = () => {
-      const {
-        state,
-        actions: { add, sub },
-      } = useStore(store);
-      return (
-        <div>
-          <button id="add1" onClick={() => add(1)}>
-            +1
-          </button>
-          <button id="sub1" onClick={() => sub(1)}>
-            -1
-          </button>
-          <span>{state.total}</span>
-        </div>
-      );
-    };
-    let rendered;
-    act(() => {
-      rendered = mount(<Component />);
-    });
-    expect(rendered.find('span').text()).toBe('3');
-    act(() => {
-      rendered.find('#add1').simulate('click');
-    });
-    rendered.update();
-    // middleware hasn't fired yet
-    expect(rendered.find('span').text()).toBe('3');
-    setTimeout(() => {
-      rendered.update();
-      // middleware fired and doubled 3 to equal 6
-      // then add() added 1 more to equal 7
-      expect(rendered.find('span').text()).toBe('7');
-      done();
-    }, 100);
-  });
-});
+// describe('useStore() asynchronous middleware', () => {
+//   // set up enzyme
+//   configure({ adapter: new Adapter() });
+//   let store;
+//   // define an asynchronous middleware
+//   const doubler = ([state, setState], { action, name, args }, next) => {
+//     setTimeout(() => {
+//       setState({ ...state, total: state.total * 2 });
+//       act(next);
+//     }, 50);
+//   };
+//   beforeAll(() => {
+//     // define store before each test
+//     addMiddleware(doubler);
+//     const state = { total: 3 };
+//     const actions = {
+//       add([state, setState], amount) {
+//         act(() => {
+//           setState({ ...state, total: state.total + amount });
+//         });
+//       },
+//       sub([state, setState], amount) {
+//         act(() => {
+//           setState({ ...state, total: state.total - amount });
+//         });
+//       },
+//     };
+//     store = createStore({ state, actions });
+//   });
+//   afterAll(() => {
+//     removeMiddleware(doubler);
+//   });
+//   it('should process middleware', done => {
+//     const Component = () => {
+//       const {
+//         state,
+//         actions: { add, sub },
+//       } = useStore(store);
+//       return (
+//         <div>
+//           <button id="add1" onClick={() => add(1)}>
+//             +1
+//           </button>
+//           <button id="sub1" onClick={() => sub(1)}>
+//             -1
+//           </button>
+//           <span>{state.total}</span>
+//         </div>
+//       );
+//     };
+//     let rendered;
+//     act(() => {
+//       rendered = mount(<Component />);
+//     });
+//     expect(rendered.find('span').text()).toBe('3');
+//     act(() => {
+//       rendered.find('#add1').simulate('click');
+//     });
+//     rendered.update();
+//     // middleware hasn't fired yet
+//     expect(rendered.find('span').text()).toBe('3');
+//     setTimeout(() => {
+//       rendered.update();
+//       // middleware fired and doubled 3 to equal 6
+//       // then add() added 1 more to equal 7
+//       expect(rendered.find('span').text()).toBe('7');
+//       done();
+//     }, 100);
+//   });
+// });
