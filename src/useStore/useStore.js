@@ -8,10 +8,10 @@ import { useState, useEffect, useDebugValue } from 'react';
  * @property {Function} reset - function to reset the store's state to its initial value
  */
 export function useStore(store) {
-  const [state, setState] = useState(store._getState());
-  console.log('************** useStore', store._getState(), state);
+  const [_, setState] = useState(store.state);
+  console.log('************** useStore', store.state);
   // store._setState(state);
-  useDebugValue({ state, store });
+  useDebugValue(store);
 
   useEffect(() => {
     store._subscribe(setState);
@@ -19,8 +19,8 @@ export function useStore(store) {
   }, [store]);
 
   return {
-    state,
-    actions: store._actions,
+    state: store.state,
+    actions: store.actions,
     reset: store.reset,
   };
 }

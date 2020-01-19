@@ -1,5 +1,9 @@
 import React from 'react';
-import { renderHook } from '@testing-library/react-hooks';
+import {
+  renderHook,
+  render,
+  waitForElement,
+} from '@testing-library/react-hooks';
 import { useStore } from './useStore.js';
 import {
   createStore,
@@ -7,90 +11,96 @@ import {
   removeMiddleware,
 } from '../createStore/createStore.js';
 
-// describe('useStore() state management', () => {
-//   // define store before each test
-//   let store;
-//   beforeEach(() => {
-//     const state = { view: 'grid' };
-//     const actions = {
-//       setView(state, setState, view) {
-//         setState(old => ({ ...old, view }));
-//       },
-//     };
-//     store = createStore({ state, actions });
-//   });
-// it('should have initial state', () => {
-//   // set up
-//   const useIt = () => useStore(store);
-//   const { result } = renderHook(useIt);
-//   // check initial state
-//   expect(result.current.state.view).toBe('grid');
-// });
-// it('should respond to actions', async () => {
-//   // set up
-//   const useIt = () => useStore(store);
-//   const { result, waitForNextUpdate } = renderHook(useIt);
-//   // call an action
-//   result.current.actions.setView('list');
-//   // wait for store to be updated
-//   await waitForNextUpdate();
-//   // check that state is updated
-//   expect(result.current.state.view).toBe('list');
-// });
-// it('should allow resetting', () => {
-//   const Component = () => {
-//     const { state, actions, reset } = useStore(store);
-//     return (
-//       <div>
-//         <button onClick={() => actions.setView('list')}>Show List</button>
-//         <a href={null} onClick={reset}>
-//           Reset
-//         </a>
-//         <span>{state.view}</span>
-//       </div>
-//     );
-//   };
-//   const rendered = mount(<Component />);
-//   expect(rendered.find('span').text()).toBe('grid');
-//
-//   act(() => {
-//     rendered.find('button').simulate('click');
-//   });
-//   rendered.update();
-//   expect(rendered.find('span').text()).toBe('list');
-//   act(() => {
-//     rendered.find('a').simulate('click');
-//   });
-//   rendered.update();
-//   expect(rendered.find('span').text()).toBe('grid');
-// });
-// it('should call afterFirstMount', () => {
-//   const Component = () => {
-//     const { state, actions, reset } = useStore(store);
-//     return (
-//       <div>
-//         <button onClick={() => actions.setView('list')}>Show List</button>
-//         <a href={null} onClick={reset}>
-//           Reset
-//         </a>
-//         <span>{state.view}</span>
-//       </div>
-//     );
-//   };
-//   const rendered = mount(<Component />);
-//   expect(rendered.find('span').text()).toBe('grid');
-//   act(() => {
-//     rendered.find('button').simulate('click');
-//   });
-//   rendered.update();
-//   expect(rendered.find('span').text()).toBe('list');
-//   act(() => {
-//     rendered.find('a').simulate('click');
-//   });
-//   rendered.update();
-//   expect(rendered.find('span').text()).toBe('grid');
-// });
-// });
+describe('useStore() state management', () => {
+  // define store before each test
+  let store;
+  beforeEach(() => {
+    const state = { view: 'grid' };
+    const actions = {
+      setView({ state, setState }, view) {
+        // setState(old => ({ ...old, view }));
+        setState({ ...state, view });
+      },
+    };
+    store = createStore({ state, actions });
+  });
+  it('should have initial state', () => {
+    // set up
+    const useIt = () => useStore(store);
+    const { result } = renderHook(useIt);
+    // check initial state
+    expect(result.current.state.view).toBe('grid');
+  });
+  // it('should respond to actions', async () => {
+  //   // set up
+  //   const useIt = () => useStore(store);
+  //   const { result, waitForNextUpdate } = renderHook(useIt);
+  //   // call an action
+  //   result.current.actions.setView('list');
+  //   // wait for store to be updated
+  //   await waitForNextUpdate();
+  //   // check that state is updated
+  //   expect(result.current.state.view).toBe('list');
+  // });
+  // it('should allow resetting', () => {
+  //   const Component = () => {
+  //     const { state, actions, reset } = useStore(store);
+  //     return (
+  //       <div>
+  //         <button onClick={() => actions.setView('list')}>Show List</button>
+  //         <a href={null} onClick={reset}>
+  //           Reset
+  //         </a>
+  //         <span>{state.view}</span>
+  //       </div>
+  //     );
+  //   };
+  //   const rendered = render(<Component />);
+  //
+  //   await waitForElement(() => getByText(/grid/));
+  //
+  //
+  //
+  //   expect(rendered.find('span').text()).toBe('grid');
+  //
+  //   act(() => {
+  //     rendered.find('button').simulate('click');
+  //   });
+  //   rendered.update();
+  //   expect(rendered.find('span').text()).toBe('list');
+  //   act(() => {
+  //     rendered.find('a').simulate('click');
+  //   });
+  //   rendered.update();
+  //   expect(rendered.find('span').text()).toBe('grid');
+  // });
+  // it('should call afterFirstMount', () => {
+  //   const Component = () => {
+  //     const { state, actions, reset } = useStore(store);
+  //     return (
+  //       <div>
+  //         <button onClick={() => actions.setView('list')}>Show List</button>
+  //         <a href={null} onClick={reset}>
+  //           Reset
+  //         </a>
+  //         <span>{state.view}</span>
+  //       </div>
+  //     );
+  //   };
+  //   const rendered = mount(<Component />);
+  //   expect(rendered.find('span').text()).toBe('grid');
+  //   act(() => {
+  //     rendered.find('button').simulate('click');
+  //   });
+  //   rendered.update();
+  //   expect(rendered.find('span').text()).toBe('list');
+  //   act(() => {
+  //     rendered.find('a').simulate('click');
+  //   });
+  //   rendered.update();
+  //   expect(rendered.find('span').text()).toBe('grid');
+  // });
+});
 // describe('useStore() first mount, last unmount', () => {
 //   // set up enzyme
 //   configure({ adapter: new Adapter() });
@@ -197,7 +207,7 @@ import {
 //   configure({ adapter: new Adapter() });
 //   let logs, store;
 //   // define a test middleware
-//   const logger = ([state, setState], { action, name, args }, next) => {
+//   const logger = ({state, setState}, { action, name, args }, next) => {
 //     logs.push({ total: state.total, name, args });
 //     next();
 //   };
@@ -207,10 +217,10 @@ import {
 //     addMiddleware(logger);
 //     const state = { total: 0 };
 //     const actions = {
-//       add([state, setState], amount) {
+//       add({state, setState}, amount) {
 //         setState({ ...state, total: state.total + amount });
 //       },
-//       sub([state, setState], amount) {
+//       sub({state, setState}, amount) {
 //         setState({ ...state, total: state.total - amount });
 //       },
 //     };
@@ -270,7 +280,7 @@ import {
 //   configure({ adapter: new Adapter() });
 //   let store;
 //   // define an asynchronous middleware
-//   const doubler = ([state, setState], { action, name, args }, next) => {
+//   const doubler = ({state, setState}, { action, name, args }, next) => {
 //     setTimeout(() => {
 //       setState({ ...state, total: state.total * 2 });
 //       act(next);
@@ -281,12 +291,12 @@ import {
 //     addMiddleware(doubler);
 //     const state = { total: 3 };
 //     const actions = {
-//       add([state, setState], amount) {
+//       add({state, setState}, amount) {
 //         act(() => {
 //           setState({ ...state, total: state.total + amount });
 //         });
 //       },
-//       sub([state, setState], amount) {
+//       sub({state, setState}, amount) {
 //         act(() => {
 //           setState({ ...state, total: state.total - amount });
 //         });

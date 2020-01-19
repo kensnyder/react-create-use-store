@@ -44,22 +44,21 @@ const state = {
 };
 
 // export action functions so they can be unit testable
-export function showView(state, setState, view) {
+export function showView({ setState }, view) {
   setState(old => ({ ...old, view }));
 }
 
-export async function searchStories(state, setState, term = '') {
+export async function searchStories({ setState }, term = '') {
   setState(old => ({ ...old, isLoading: true }));
   const stories = await api.get('/api/stories', { term });
   setState(old => ({ ...old, isLoading: false, stories }));
 }
 
-export async function deleteStory(state, setState, story) {
+export async function deleteStory({ state, setState }, story) {
   const stories = state.stories.filter(s => s !== story);
   setState(old => ({ ...old, stories }));
   const deletedOk = await api.delete(`/api/stories/${story.id}`);
   if (!deletedOk) {
-    setState(old => ({ ...old, stories: [...old.stories, story] }));
     alert('Server error deleting story');
   }
 }
@@ -91,7 +90,7 @@ import StoryItem from '../StoryItem.js';
 export function StoryListing() {
   const {
     state,
-    actions: { setView },
+    actions: { setView, searchStories },
   } = useStore(storyStore);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -116,7 +115,7 @@ export function StoryListing() {
 
   function runSearch(event) {
     event.preventDefault();
-    actions.searchStories(searchTerm);
+    searchStories(searchTerm);
   }
 }
 ```
@@ -145,12 +144,13 @@ export default function StoryItem({ story }) {
 
 ## Writing Actions
 
-When writing an action function, the first two arguments are `state` and 
-`setState`. Subsequent arguments are those that consumers should pass in. For
-example, a login action might be defined with four arguments:
+When writing an action function, the first argument is the store, with a 
+property `state` and a method `setState`. Subsequent arguments are those that 
+consumers should pass in. For example, a login action might be defined with
+three arguments:
 
 ```jsx harmony
-function login(state, setState, username, password) {}
+function login({ state, setState }, username, password) {}
 ```
 
 But be invoked with two arguments:
@@ -233,7 +233,7 @@ useStore()
 - {Function} onMiddlewareError - Callback when a middleware throws an exception
 - {String} id - The id string which middleware can use to tell stores apart
 
-All callbacks receive parameters `state, setState, store` where
+All callbacks receive parameters `store` where
     - `state` is the store's current state that will be passed to the action
     function
     - `setState` is the setter that will cause all consumers to re-render

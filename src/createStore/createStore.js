@@ -21,11 +21,10 @@ const middlewares = [];
  * @property {Number} store.idx - The index order of the store in order of definition
  * @property {Function} store.addActions - Register more actions for this store
  * @property {Function} store.reset - Reset the store's state to its original value
- * @property {Object} store._actions - Methods that can be called to affect state
+ * @property {Object} store.actions - Methods that can be called to affect state
  * @property {Function} store._subscribe - A method to add a setState callback that should be notified on changes
  * @property {Function} store._unsubscribe - A method to remove a setState callback
  * @property {Number} store._usedCount - The number of components that have ever used this store
- * @property {Function} store._getState - Get the current state of the store
  */
 export function createStore({
   state = {},
@@ -39,8 +38,6 @@ export function createStore({
   onMiddlewareError = () => {},
   id = null,
 }) {
-  // initialize current state
-  let currState = state;
   // list of setters subscribed to changes
   let _setters = [];
 
@@ -54,11 +51,10 @@ export function createStore({
     reset: () => _setAll(state),
     // add more action functions to this state
     addActions,
+    state: state,
+    setState: _setAll,
     // private: functions that will act on state
-    _actions: {},
-    // private: get the current state
-    _getState: () => currState,
-    // _setState: newState => (currState = newState),
+    actions: {},
     // private: useStore() can subscribe to all store changes
     _subscribe,
     // private: useStore() can unsubscribe from changes
@@ -87,7 +83,7 @@ export function createStore({
     // build the actions, allowing for middleware
     Object.keys(actions).forEach(name => {
       const action = actions[name];
-      store._actions[name] = (...args) => {
+      store.actions[name] = (...args) => {
         let idx = 0;
         // function to invoke next middleware or to invoke action
         let next = () => {
@@ -95,7 +91,7 @@ export function createStore({
           const middleware = middlewares[idx - 1];
           if (middleware) {
             // one or more middlewares left to run
-            const inputs = [currState, _setAll, { action, name, args }];
+            const inputs = [store, { action, name, args }];
             try {
               // call this middleware
               middleware(...inputs, next);
@@ -113,7 +109,7 @@ export function createStore({
             }
           } else {
             // all middlewares have run; call the action
-            action(currState, _setAll, ...args);
+            action(store, ...args);
           }
         };
         next();
@@ -128,14 +124,14 @@ export function createStore({
    */
   function _subscribe(setState) {
     if (store._usedCount++ === 0) {
-      onFirstUse(currState, _setAll, store);
+      onFirstUse(store);
     }
     if (_setters.length === 0) {
-      afterFirstMount(currState, _setAll, store);
+      afterFirstMount(store);
     }
     if (_setters.indexOf(setState) === -1) {
       _setters.push(setState);
-      afterEachMount(currState, _setAll, store);
+      afterEachMount(store);
     }
   }
 
@@ -146,12 +142,12 @@ export function createStore({
    */
   function _unsubscribe(setState) {
     _setters = _setters.filter(setter => setter !== setState);
-    afterEachUnmount(currState, _setAll, store);
+    afterEachUnmount(store);
     if (_setters.length === 0) {
       if (autoReset) {
         store.reset();
       }
-      afterLastUnmount(currState, _setAll, store);
+      afterLastUnmount(store);
     }
   }
 
@@ -163,9 +159,10 @@ export function createStore({
   function _setAll(newState) {
     console.log('_setAll', newState);
     if (typeof newState === 'function') {
-      newState = newState(currState);
+      // TODO: queue changes for next tick?
+      newState = newState(store.state);
     }
-    currState = newState;
+    store.state = newState;
     _setters.forEach(setter => setter(newState));
   }
 }
