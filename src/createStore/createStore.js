@@ -158,7 +158,6 @@ export function createStore({
    * @private
    */
   function _setAll(newState) {
-    console.log('_setAll', newState);
     if (typeof newState === 'function') {
       // TODO: queue changes for next tick?
       newState = newState(store.state);

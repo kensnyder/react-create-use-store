@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react-hooks';
 import {
   render,
   fireEvent,
@@ -22,7 +22,7 @@ describe('useStore() state management', () => {
   beforeEach(() => {
     const state = { view: 'grid' };
     const actions = {
-      setView([state, setState], view) {
+      setView([, setState], view) {
         setState(old => ({ ...old, view }));
       },
     };
@@ -75,7 +75,9 @@ describe('useStore() state management', () => {
     const useIt = () => useStore(store);
     const { result } = renderHook(useIt);
     // call an action
-    result.current.actions.setView('list');
+    act(() => {
+      result.current.actions.setView('list');
+    });
     expect(result.current.state.view).toBe('list');
   });
   it('should respond to clicks', async () => {
@@ -118,146 +120,51 @@ describe('useStore() state management', () => {
     expect(mountDetails.lastUnmount).toBe(true);
   });
 });
-// describe('useStore() basic middleware', () => {
-//   // set up enzyme
-//   configure({ adapter: new Adapter() });
-//   let logs, store;
-//   // define a test middleware
-//   const logger = ({state, setState}, { action, name, args }, next) => {
-//     logs.push({ total: state.total, name, args });
-//     next();
-//   };
-//   beforeAll(() => {
-//     logs = [];
-//     // define store before each test
-//     addMiddleware(logger);
-//     const state = { total: 0 };
-//     const actions = {
-//       add({state, setState}, amount) {
-//         setState({ ...state, total: state.total + amount });
-//       },
-//       sub({state, setState}, amount) {
-//         setState({ ...state, total: state.total - amount });
-//       },
-//     };
-//     store = createStore({ state, actions });
-//   });
-//   afterAll(() => {
-//     removeMiddleware(logger);
-//   });
-//   it('should allow middleware', () => {
-//     const Component = () => {
-//       const {
-//         state,
-//         actions: { add, sub },
-//       } = useStore(store);
-//       return (
-//         <div>
-//           <button id="add2" onClick={() => add(2)}>
-//             +2
-//           </button>
-//           <button id="sub1" onClick={() => sub(1)}>
-//             -1
-//           </button>
-//           <span>{state.total}</span>
-//         </div>
-//       );
-//     };
-//     const rendered = mount(<Component />);
-//     expect(logs).toHaveLength(0);
-//     expect(rendered.find('span').text()).toBe('0');
-//     act(() => {
-//       rendered.find('#add2').simulate('click');
-//     });
-//     rendered.update();
-//     expect(logs).toHaveLength(1);
-//     expect(logs).toEqual([
-//       {
-//         total: 0,
-//         name: 'add',
-//         args: [2],
-//       },
-//     ]);
-//     expect(rendered.find('span').text()).toBe('2');
-//     act(() => {
-//       rendered.find('#sub1').simulate('click');
-//     });
-//     rendered.update();
-//     expect(logs).toHaveLength(2);
-//     expect(logs[1]).toEqual({
-//       total: 2,
-//       name: 'sub',
-//       args: [1],
-//     });
-//   });
-// });
-// describe('useStore() asynchronous middleware', () => {
-//   // set up enzyme
-//   configure({ adapter: new Adapter() });
-//   let store;
-//   // define an asynchronous middleware
-//   const doubler = ({state, setState}, { action, name, args }, next) => {
-//     setTimeout(() => {
-//       setState({ ...state, total: state.total * 2 });
-//       act(next);
-//     }, 50);
-//   };
-//   beforeAll(() => {
-//     // define store before each test
-//     addMiddleware(doubler);
-//     const state = { total: 3 };
-//     const actions = {
-//       add({state, setState}, amount) {
-//         act(() => {
-//           setState({ ...state, total: state.total + amount });
-//         });
-//       },
-//       sub({state, setState}, amount) {
-//         act(() => {
-//           setState({ ...state, total: state.total - amount });
-//         });
-//       },
-//     };
-//     store = createStore({ state, actions });
-//   });
-//   afterAll(() => {
-//     removeMiddleware(doubler);
-//   });
-//   it('should process middleware', done => {
-//     const Component = () => {
-//       const {
-//         state,
-//         actions: { add, sub },
-//       } = useStore(store);
-//       return (
-//         <div>
-//           <button id="add1" onClick={() => add(1)}>
-//             +1
-//           </button>
-//           <button id="sub1" onClick={() => sub(1)}>
-//             -1
-//           </button>
-//           <span>{state.total}</span>
-//         </div>
-//       );
-//     };
-//     let rendered;
-//     act(() => {
-//       rendered = mount(<Component />);
-//     });
-//     expect(rendered.find('span').text()).toBe('3');
-//     act(() => {
-//       rendered.find('#add1').simulate('click');
-//     });
-//     rendered.update();
-//     // middleware hasn't fired yet
-//     expect(rendered.find('span').text()).toBe('3');
-//     setTimeout(() => {
-//       rendered.update();
-//       // middleware fired and doubled 3 to equal 6
-//       // then add() added 1 more to equal 7
-//       expect(rendered.find('span').text()).toBe('7');
-//       done();
-//     }, 100);
-//   });
-// });
+describe('useStore() middleware', () => {
+  // define store before each test
+  let store;
+  let Component;
+  let context;
+  let actions;
+  const middlewareThatAdds3 = ({ store, action, name, args }, next) => {
+    context = { store, action, name };
+    args[0] += 3;
+    next();
+  };
+  beforeEach(() => {
+    const state = { foo: 'bar', result: 0 };
+    actions = {
+      add([, setState], addend) {
+        setState(old => ({ ...old, result: old.result + addend }));
+      },
+    };
+    addMiddleware(middlewareThatAdds3);
+    Component = () => {
+      const { state, actions } = useStore(store);
+      return (
+        <>
+          <button onClick={() => actions.add(2)}>Add 2</button>
+          <button onClick={() => actions.add(7)}>Add 7</button>
+          <span>result={state.result}</span>
+        </>
+      );
+    };
+    store = createStore({
+      state,
+      actions,
+    });
+  });
+  it('should be called and be removeable', async () => {
+    const { getByText } = render(<Component />);
+    fireEvent.click(getByText('Add 2'));
+    const span = await screen.findByText('result=5');
+    expect(span).toHaveTextContent('result=5');
+    expect(context.store).toBe(store);
+    expect(context.action).toBe(actions.add);
+    expect(context.name).toBe('add');
+    removeMiddleware(middlewareThatAdds3);
+    fireEvent.click(getByText('Add 7'));
+    const span2 = await screen.findByText('result=12');
+    expect(span2).toBeInTheDocument();
+  });
+});

@@ -9,7 +9,7 @@ import { useState, useEffect, useDebugValue } from 'react';
  */
 export function useStore(store) {
   const [_, setState] = useState(store.state);
-  console.log('************** useStore', store.state);
+
   // store._setState(state);
   useDebugValue(store);
 
