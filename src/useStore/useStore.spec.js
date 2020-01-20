@@ -1,9 +1,12 @@
 import React from 'react';
+import { renderHook } from '@testing-library/react-hooks';
 import {
-  renderHook,
   render,
+  fireEvent,
+  screen,
   waitForElement,
-} from '@testing-library/react-hooks';
+} from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { useStore } from './useStore.js';
 import {
   createStore,
@@ -14,15 +17,51 @@ import {
 describe('useStore() state management', () => {
   // define store before each test
   let store;
+  let mountDetails;
+  let Component;
   beforeEach(() => {
     const state = { view: 'grid' };
     const actions = {
-      setView({ state, setState }, view) {
-        // setState(old => ({ ...old, view }));
-        setState({ ...state, view });
+      setView([state, setState], view) {
+        setState(old => ({ ...old, view }));
       },
     };
-    store = createStore({ state, actions });
+    const afterFirstMount = () => {
+      mountDetails.firstMount = true;
+    };
+    const afterEachMount = () => {
+      mountDetails.mountCount++;
+    };
+    const afterEachUnmount = () => {
+      mountDetails.unmountCount++;
+    };
+    const afterLastUnmount = () => {
+      mountDetails.lastUnmount = true;
+    };
+    Component = () => {
+      const { state, actions, reset } = useStore(store);
+      return (
+        <>
+          <button onClick={() => actions.setView('list')}>Show List</button>
+          <button onClick={reset}>Reset</button>
+          <span>view={state.view}</span>
+        </>
+      );
+    };
+    mountDetails = {
+      firstMount: false,
+      mountCount: 0,
+      unmountCount: 0,
+      lastUnmount: false,
+    };
+    store = createStore({
+      state,
+      actions,
+      afterFirstMount,
+      afterEachMount,
+      afterEachUnmount,
+      afterLastUnmount,
+    });
   });
   it('should have initial state', () => {
     // set up
@@ -31,177 +70,54 @@ describe('useStore() state management', () => {
     // check initial state
     expect(result.current.state.view).toBe('grid');
   });
-  // it('should respond to actions', async () => {
-  //   // set up
-  //   const useIt = () => useStore(store);
-  //   const { result, waitForNextUpdate } = renderHook(useIt);
-  //   // call an action
-  //   result.current.actions.setView('list');
-  //   // wait for store to be updated
-  //   await waitForNextUpdate();
-  //   // check that state is updated
-  //   expect(result.current.state.view).toBe('list');
-  // });
-  // it('should allow resetting', () => {
-  //   const Component = () => {
-  //     const { state, actions, reset } = useStore(store);
-  //     return (
-  //       <div>
-  //         <button onClick={() => actions.setView('list')}>Show List</button>
-  //         <a href={null} onClick={reset}>
-  //           Reset
-  //         </a>
-  //         <span>{state.view}</span>
-  //       </div>
-  //     );
-  //   };
-  //   const rendered = render(<Component />);
-  //
-  //   await waitForElement(() => getByText(/grid/));
-  //
-  //
-  //
-  //   expect(rendered.find('span').text()).toBe('grid');
-  //
-  //   act(() => {
-  //     rendered.find('button').simulate('click');
-  //   });
-  //   rendered.update();
-  //   expect(rendered.find('span').text()).toBe('list');
-  //   act(() => {
-  //     rendered.find('a').simulate('click');
-  //   });
-  //   rendered.update();
-  //   expect(rendered.find('span').text()).toBe('grid');
-  // });
-  // it('should call afterFirstMount', () => {
-  //   const Component = () => {
-  //     const { state, actions, reset } = useStore(store);
-  //     return (
-  //       <div>
-  //         <button onClick={() => actions.setView('list')}>Show List</button>
-  //         <a href={null} onClick={reset}>
-  //           Reset
-  //         </a>
-  //         <span>{state.view}</span>
-  //       </div>
-  //     );
-  //   };
-  //   const rendered = mount(<Component />);
-  //   expect(rendered.find('span').text()).toBe('grid');
-  //   act(() => {
-  //     rendered.find('button').simulate('click');
-  //   });
-  //   rendered.update();
-  //   expect(rendered.find('span').text()).toBe('list');
-  //   act(() => {
-  //     rendered.find('a').simulate('click');
-  //   });
-  //   rendered.update();
-  //   expect(rendered.find('span').text()).toBe('grid');
-  // });
+  it('should respond to actions', async () => {
+    // set up
+    const useIt = () => useStore(store);
+    const { result } = renderHook(useIt);
+    // call an action
+    result.current.actions.setView('list');
+    expect(result.current.state.view).toBe('list');
+  });
+  it('should respond to clicks', async () => {
+    const { getByText } = render(<Component />);
+    expect(getByText('view=grid')).toBeInTheDocument();
+    fireEvent.click(getByText('Show List'));
+    const report = await screen.findByText('view=list');
+    expect(report).toHaveTextContent('view=list');
+  });
+  it('should allow resetting', async () => {
+    const { getByText } = render(<Component />);
+    expect(getByText('view=grid')).toBeInTheDocument();
+    fireEvent.click(getByText('Show List'));
+    await waitForElement(() => getByText('view=list'));
+    fireEvent.click(getByText('Reset'));
+    await waitForElement(() => getByText('view=grid'));
+    expect(getByText('view=grid')).toBeInTheDocument();
+  });
+  it('should call afterFirstMount', () => {
+    render(<Component />);
+    expect(mountDetails.firstMount).toBe(true);
+  });
+  it('should call afterEachMount', () => {
+    render(<Component />);
+    expect(mountDetails.mountCount).toBe(1);
+  });
+  it('should call afterEachUnmount', () => {
+    const { unmount } = render(<Component />);
+    expect(mountDetails.unmountCount).toBe(0);
+    unmount();
+    expect(mountDetails.unmountCount).toBe(1);
+  });
+  it('should call afterLastUnmount', () => {
+    const { unmount: unmount1 } = render(<Component />);
+    const { unmount: unmount2 } = render(<Component />);
+    expect(mountDetails.lastUnmount).toBe(false);
+    unmount1();
+    expect(mountDetails.lastUnmount).toBe(false);
+    unmount2();
+    expect(mountDetails.lastUnmount).toBe(true);
+  });
 });
-// describe('useStore() first mount, last unmount', () => {
-//   // set up enzyme
-//   configure({ adapter: new Adapter() });
-//   // define store before each test
-//   let store, mountCount, unmountCount;
-//   beforeEach(() => {
-//     mountCount = 0;
-//     unmountCount = 0;
-//     const afterFirstMount = () => mountCount++;
-//     const afterLastUnmount = () => unmountCount++;
-//     store = createStore({ afterFirstMount, afterLastUnmount });
-//   });
-//   it('should use proper callbacks', () => {
-//     const Component1 = () => {
-//       useStore(store);
-//       return <div>One</div>;
-//     };
-//     const Component2 = () => {
-//       useStore(store);
-//       return <div>Two</div>;
-//     };
-//     // first mount
-//     const rendered1a = mount(<Component1 />);
-//     expect(mountCount).toBe(1);
-//     const rendered2a = mount(<Component2 />);
-//     expect(mountCount).toBe(1);
-//     rendered1a.unmount();
-//     expect(unmountCount).toBe(0);
-//     rendered2a.unmount();
-//     expect(unmountCount).toBe(1);
-//     // second mount
-//     const rendered1b = mount(<Component1 />);
-//     expect(mountCount).toBe(2);
-//     const rendered2b = mount(<Component2 />);
-//     expect(mountCount).toBe(2);
-//     rendered1a.mount();
-//     expect(mountCount).toBe(2);
-//     rendered1b.unmount();
-//     expect(unmountCount).toBe(1);
-//     rendered2b.unmount();
-//     expect(unmountCount).toBe(1);
-//     rendered1a.unmount();
-//     expect(unmountCount).toBe(2);
-//   });
-// });
-// describe('useStore() each mount/unmount', () => {
-//   // set up enzyme
-//   configure({ adapter: new Adapter() });
-//   // define store before each test
-//   let store, mountCount, unmountCount;
-//   beforeEach(() => {
-//     mountCount = 0;
-//     unmountCount = 0;
-//     const afterEachMount = () => mountCount++;
-//     const afterEachUnmount = () => unmountCount++;
-//     store = createStore({ afterEachMount, afterEachUnmount });
-//   });
-//   it('should use proper callbacks', () => {
-//     const Component1 = () => {
-//       useStore(store);
-//       return <div>One</div>;
-//     };
-//     const Component2 = () => {
-//       useStore(store);
-//       return <div>Two</div>;
-//     };
-//     const rendered1a = mount(<Component1 />);
-//     expect(mountCount).toBe(1);
-//     const rendered2a = mount(<Component2 />);
-//     expect(mountCount).toBe(2);
-//     rendered1a.unmount();
-//     expect(unmountCount).toBe(1);
-//     rendered2a.unmount();
-//     expect(unmountCount).toBe(2);
-//   });
-// });
-// describe('useStore() onFirstUse', () => {
-//   // set up enzyme
-//   configure({ adapter: new Adapter() });
-//   // define store before each test
-//   let store, callbackCount;
-//   beforeEach(() => {
-//     callbackCount = 0;
-//     const onFirstUse = () => callbackCount++;
-//     store = createStore({ onFirstUse });
-//   });
-//   it('should use proper callbacks', () => {
-//     const Component1 = () => {
-//       useStore(store);
-//       return <div>One</div>;
-//     };
-//     const Component2 = () => {
-//       useStore(store);
-//       return <div>Two</div>;
-//     };
-//     mount(<Component1 />);
-//     expect(callbackCount).toBe(1);
-//     mount(<Component2 />);
-//     expect(callbackCount).toBe(1);
-//   });
-// });
 // describe('useStore() basic middleware', () => {
 //   // set up enzyme
 //   configure({ adapter: new Adapter() });

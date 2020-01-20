@@ -18,7 +18,7 @@ describe('createStore()', () => {
     expect(typeof store.actions.add).toBe('function');
   });
   it('should build actions and manipulate state', () => {
-    const add = ({ state, setState }, addend) => {
+    const add = ([state, setState], addend) => {
       setState({ ...state, count: state.count + addend });
     };
     const state = { count: 5 };
@@ -28,7 +28,7 @@ describe('createStore()', () => {
     expect(store.state.count).toBe(8);
   });
   it('should allow resetting', () => {
-    const add = ({ state, setState }, addend) => {
+    const add = ([state, setState], addend) => {
       setState({ ...state, count: state.count + addend });
     };
     const state = { count: 5 };
@@ -39,7 +39,7 @@ describe('createStore()', () => {
     expect(store.state).toBe(state);
   });
   it('should allow async setState', done => {
-    const add = ({ state, setState }, addend) => {
+    const add = ([state, setState], addend) => {
       Promise.resolve(state.total + addend).then(total => {
         setState(old => ({ ...old, total }));
       });

@@ -91,15 +91,15 @@ export function createStore({
           const middleware = middlewares[idx - 1];
           if (middleware) {
             // one or more middlewares left to run
-            const inputs = [store, { action, name, args }];
+            const input = { store, action, name, args };
             try {
               // call this middleware
-              middleware(...inputs, next);
+              middleware(input, next);
             } catch (error) {
               const context = {
                 error,
                 middleware,
-                args: inputs,
+                input,
               };
               console.error(
                 `react-create-use-store: middleware failed during action "${name}."`,
@@ -109,9 +109,10 @@ export function createStore({
             }
           } else {
             // all middlewares have run; call the action
-            action(store, ...args);
+            action([state, _setAll], ...args);
           }
         };
+        // kick off action
         next();
       };
     });
