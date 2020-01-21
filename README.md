@@ -74,22 +74,17 @@ export function StoryListing() {
 }
 ```
 
-In /components/Adder/Adder.spec.js
+In /components/Adder/AdderStore.spec.js
 
 ```jsx harmony
 import React from 'react';
-import { add } from './AdderStore.js';
+import AdderStore from './AdderStore.js';
 
 describe('AdderStore', () => {
-  it('should modify state', () => {
-    const pair = [
-      { count: 5 },
-      updater => {
-        pair[0] = updater(pair[0]);
-      },
-    ];
-    add(pair, 4);
-    expect(pair[0].count).toBe(9);
+  it('should add numbers', () => {
+    AdderStore.state = { count: 5 };
+    AdderStore.actions.add(4);
+    expect(AdderStore.state.count).toBe(9);
   });
 });
 ```

@@ -91,7 +91,7 @@ export function createStore({
           const middleware = middlewares[idx - 1];
           if (middleware) {
             // one or more middlewares left to run
-            const input = { store, action, name, args };
+            const input = { store, state, action, name, args };
             try {
               // call this middleware
               middleware(input, next);
@@ -174,7 +174,6 @@ export function createStore({
  * {Object} info => {
  * 		store,     // the store object
  * 		state,     // the store's current state
- * 		setState,  // a function to update the current state
  * 		action,    // the original action function passed to createStore()
  * 		name,      // the name of the action
  * 		args       // the args passed to the action function
