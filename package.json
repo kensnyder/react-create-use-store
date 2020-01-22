@@ -18,7 +18,7 @@
     "state",
     "state management",
     "global state",
-    "middleware"
+    "component state"
   ],
   "dependencies": {},
   "scripts": {

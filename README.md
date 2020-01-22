@@ -14,8 +14,8 @@ npm install --save react-create-use-store
 1. [Simple example](#simple-example)
 1. [Complex example](#complex-example)
 1. [Writing Actions](#writing-actions)
-1. [Writing Middleware](#writing-middleware)
 1. [All Store Options](#all-store-options)
+1. [Suggested File Structure](#suggested-file-structure)
 1. [Credits](#credits)
 
 ## Features
@@ -23,19 +23,19 @@ npm install --save react-create-use-store
 1. Instead of reducers or observables, define "actions": functions that take
    a `[state, setState]` pair and then arguments
 1. Store actions are easily testable
-1. Stores can respond to lifecycle events including unmount (e.g. to abort
-   fetching data)
+1. Stores can respond to component lifecycle events including unmount
+   (e.g. to abort fetching data)
 1. Stores can persist data
 1. A store can be used by one component or many components
 1. Stores are included by only the components that need them
-1. Stores allow defining middleware to intercept, modify or block actions
 1. Stores allow for natural code splitting
+1. Less than 1kb gzipped
 
 ## Example usage
 
 ### Simple example
 
-In /components/adder/AdderStore.js
+In src/stores/adder/adderStore.js
 
 ```jsx harmony
 import { createStore } from 'react-create-use-store';
@@ -43,55 +43,54 @@ import { createStore } from 'react-create-use-store';
 // initial state
 const state = { count: 0 };
 
-// export action functions so they can be unit testable
-export function add([, setState], addend) {
-  setState(old => ({ ...old, count: old.count + addend }));
-}
-
 // list of action functions
-const actions = { add };
+const actions = {
+  add([, setState], addend) {
+    setState(old => ({ ...old, count: old.count + addend }));
+  },
+};
 
 // create and export the store
 export default createStore({ state, actions });
 ```
 
-In /components/Adder/Adder.js
+In src/components/PlusTwo/PlusTwo.js
 
 ```jsx harmony
 import React from 'react';
 import { useStore } from 'react-create-use-store';
-import AdderStore from './AdderStore.js';
+import adderStore from 'stores/adder/adderStore.js';
 
-export function StoryListing() {
-  const { state, actions } = useStore(AdderStore);
+export function PlusTwo() {
+  const { state, actions } = useStore(adderStore);
 
   return (
-    <div className="Component StoryListing">
+    <>
       <button onClick={() => actions.add(2)}>+2</button>
       <p>Count: {state.count}</p>
-    </div>
+    </>
   );
 }
 ```
 
-In /components/Adder/AdderStore.spec.js
+In src/stores/adder/adderStore.spec.js
 
 ```jsx harmony
 import React from 'react';
-import AdderStore from './AdderStore.js';
+import adderStore from './adderStore.js';
 
 describe('AdderStore', () => {
   it('should add numbers', () => {
-    AdderStore.state = { count: 5 };
-    AdderStore.actions.add(4);
-    expect(AdderStore.state.count).toBe(9);
+    adderStore.state = { count: 5 };
+    adderStore.actions.add(4);
+    expect(adderStore.state.count).toBe(9);
   });
 });
 ```
 
 ## Complex example
 
-Define your store's initial state and action functions:
+In src/stores/story/storyStore.js
 
 ```jsx harmony
 import { createStore } from 'react-create-use-store';
@@ -108,13 +107,13 @@ export function showView([, setState], view) {
   setState(old => ({ ...old, view }));
 }
 
-export async function searchStories([, setState], term = '') {
-  setState(old => ({ ...old, isLoading: true }));
+async function searchStories([, setState], term = '') {
+  setState(old => ({ ...old, isLoading: true, stories: [] }));
   const stories = await api.get('/api/stories', { term });
   setState(old => ({ ...old, isLoading: false, stories }));
 }
 
-export async function deleteStory([state, setState], story) {
+async function deleteStory([state, setState], story) {
   const stories = state.stories.filter(s => s !== story);
   setState(old => ({ ...old, stories }));
   const deletedOk = await api.delete(`/api/stories/${story.id}`);
@@ -138,21 +137,17 @@ export default createStore({
 });
 ```
 
-Then use it in one or more components.
-
-1. A component for stories search screen
+In src/components/StoryListing/StoryListing.js
 
 ```jsx harmony
 import React, { useState } from 'react';
 import { useStore } from 'react-create-use-store';
-import storyStore from '../Stories/storyStore.js';
+import storyStore from 'stores/StoryStore/StoryStore.js';
 import StoryItem from '../StoryItem.js';
 
 export function StoryListing() {
-  const {
-    state,
-    actions: { setView, searchStories },
-  } = useStore(storyStore);
+  const { state, actions } = useStore(storyStore);
+  const { setView, searchStories } = actions;
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
@@ -181,12 +176,12 @@ export function StoryListing() {
 }
 ```
 
-2. A component to display a single story
+In src/components/StoryItem/StoryItem.js
 
 ```jsx harmony
 import React from 'react';
 import { useStore } from 'react-create-use-store';
-import storyStore from '../Stories/storyStore.js';
+import storyStore from 'stores/story/storyStore.js';
 
 export default function StoryItem({ story }) {
   const { state, actions } = useStore(storyStore);
@@ -206,10 +201,9 @@ export default function StoryItem({ story }) {
 
 ## Writing Actions
 
-When writing an action function, the first argument is the store, with a
-property `state` and a method `setState`. Subsequent arguments are those that
-consumers should pass in. For example, a login action might be defined with
-three arguments:
+When writing an action function, the first argument is the `[state, setState]` pair.
+Subsequent arguments are those that consumers should pass in. For example, a login
+action might be defined with three arguments:
 
 ```jsx harmony
 function login([state, setState], username, password) {}
@@ -219,13 +213,13 @@ But be invoked with two arguments:
 
 ```jsx harmony
 export default function LoginForm() {
-  const { state, actions } = useStore(authStore);
+  const { actions } = useStore(authStore);
   // ...
   actions.login(username, password);
 }
 ```
 
-The `state, setState` pairs work exactly like `useState()` pairs. The `state`
+The `[state, setState]` pairs work exactly like `useState()` pairs. The `state`
 value should not be changed directly; it is shared across all components that
 consume the store through `useStore()`. The `setState` function can be called
 with a value that should replace the current state or an updater function that
@@ -234,7 +228,7 @@ re-render on all components that consume the state.
 
 Note that by default, state persists even when all consumers have unmounted.
 The effect is similar to having a global state that your top level `<App />`
-consumes.
+consumes. To disable, create the state with `autoReset` set to true.
 
 Many global-state patterns like Redux do not have built-in ways to code split.
 In this library, code splitting can happen naturally because consumers must
@@ -257,8 +251,8 @@ state values they affect.
 - Multi-step events (e.g. user path analytics)
   - Let's say we need to classify the successfulness of a search
   - Some definitions:
-    - A failed search is one that a user makes and clicks on nothing
-    - A fruitless search is one that produces no results
+    - A "failed search" is one that elicits no clicks
+    - A "fruitless search" is one that produces no results
     - Good search results see one click
     - Great search results see two clicks, but several seconds apart
   - Various components participate in the process including the search bar,
@@ -268,12 +262,6 @@ state values they affect.
   - Associated actions would be search, unmount search page, click
   - And the store could contact an API after all the actions stop for several
     seconds
-
-## Writing Middleware
-
-A Middleware function is invoked after a consumer calls an action and before
-that defined action function runs. Practical examples of middleware include
-logging, analytics, and debugging.
 
 ## All Store Options
 
@@ -292,11 +280,22 @@ The `createStore()` function takes an object with the following properties:
   useStore()
 - {Function} afterEachUnmount - Callback when any consumer component unmounts
 - {Function} afterLastUnmount - Callback when all consumer components unmount
-- {Function} onMiddlewareError - Callback when a middleware throws an exception
-- {String} id - The id string which middleware can use to tell stores apart
 
-All callbacks receive parameters `store` where - `state` is the store's current state that will be passed to the action
-function - `setState` is the setter that will cause all consumers to re-render - `store` is the store itself that can be used to debug
+All callbacks receive the store as a parameter.
+
+## Suggested File Structure
+
+For shared stores, e.g. a theme store:
+
+- src/stores/theme/themeStore.js
+- src/stores/theme/themeStore.spec.js
+
+For components or pages with private state, e.g. a header:
+
+- src/components/Header/Header.js
+- src/components/Header/Header.spec.js
+- src/components/Header/store/headerStore.js
+- src/components/Header/store/headerStore.spec.js
 
 ## Credits
 

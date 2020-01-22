@@ -8,13 +8,9 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useStore } from './useStore.js';
-import {
-  createStore,
-  addMiddleware,
-  removeMiddleware,
-} from '../createStore/createStore.js';
+import { createStore } from '../createStore/createStore.js';
 
-describe('useStore() state management', () => {
+describe('useStore()', () => {
   // define store before each test
   let store;
   let mountDetails;
@@ -118,53 +114,5 @@ describe('useStore() state management', () => {
     expect(mountDetails.lastUnmount).toBe(false);
     unmount2();
     expect(mountDetails.lastUnmount).toBe(true);
-  });
-});
-describe('useStore() middleware', () => {
-  // define store before each test
-  let store;
-  let Component;
-  let context;
-  let actions;
-  const middlewareThatAdds3 = ({ store, action, name, args }, next) => {
-    context = { store, action, name };
-    args[0] += 3;
-    next();
-  };
-  beforeEach(() => {
-    const state = { foo: 'bar', result: 0 };
-    actions = {
-      add([, setState], addend) {
-        setState(old => ({ ...old, result: old.result + addend }));
-      },
-    };
-    addMiddleware(middlewareThatAdds3);
-    Component = () => {
-      const { state, actions } = useStore(store);
-      return (
-        <>
-          <button onClick={() => actions.add(2)}>Add 2</button>
-          <button onClick={() => actions.add(7)}>Add 7</button>
-          <span>result={state.result}</span>
-        </>
-      );
-    };
-    store = createStore({
-      state,
-      actions,
-    });
-  });
-  it('should be called and be removeable', async () => {
-    const { getByText } = render(<Component />);
-    fireEvent.click(getByText('Add 2'));
-    const span = await screen.findByText('result=5');
-    expect(span).toHaveTextContent('result=5');
-    expect(context.store).toBe(store);
-    expect(context.action).toBe(actions.add);
-    expect(context.name).toBe('add');
-    removeMiddleware(middlewareThatAdds3);
-    fireEvent.click(getByText('Add 7'));
-    const span2 = await screen.findByText('result=12');
-    expect(span2).toBeInTheDocument();
   });
 });
