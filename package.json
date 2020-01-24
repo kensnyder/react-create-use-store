@@ -1,8 +1,9 @@
 {
   "name": "react-create-use-store",
   "description": "Simple state management for React using hooks",
-  "version": "1.0.6",
-  "main": "dist.js",
+  "version": "2.0.0",
+  "source": "src/index.js",
+  "main": "dist/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kensnyder/creact-create-use-store.git"
@@ -17,30 +18,34 @@
     "state",
     "state management",
     "global state",
-    "middleware"
+    "component state"
   ],
   "dependencies": {},
   "scripts": {
     "test": "npx jest",
     "test-watch": "npx jest --watch",
-    "build": "echo 'build not yet defined' && exit 1"
+    "build": "microbundle --compress"
   },
   "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
+    "react": ">=16.12.0",
+    "react-dom": ">=16.12.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.5.4",
-    "@babel/preset-env": "^7.5.4",
-    "@babel/preset-react": "^7.0.0",
-    "babel-jest": "^24.8.0",
+    "@babel/core": "^7.8.3",
+    "@babel/plugin-transform-regenerator": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.8.3",
+    "@babel/preset-env": "^7.8.3",
+    "@babel/preset-react": "^7.8.3",
+    "@testing-library/jest-dom": "^5.0.0",
+    "@testing-library/react": "^9.4.0",
+    "@testing-library/react-hooks": "^3.2.1",
+    "babel-jest": "^24.9.0",
     "babel-preset-react": "^6.24.1",
-    "enzyme": "^3.10.0",
-    "enzyme-adapter-react-16": "^1.14.0",
-    "jest": "^24.8.0",
-    "parcel-bundler": "^1.12.4",
+    "jest": "^24.9.0",
+    "microbundle": "^0.11.0",
     "prettier": "^1.19.1",
-    "react": "^16.8.6",
-    "react-dom": "^16.8.6"
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "react-test-renderer": "^16.12.0"
   }
 }
