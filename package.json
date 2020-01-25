@@ -1,7 +1,7 @@
 {
   "name": "react-create-use-store",
   "description": "Simple state management for React using hooks",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "source": "src/index.js",
   "main": "dist/index.js",
   "repository": {
@@ -24,7 +24,7 @@
   "scripts": {
     "test": "npx jest",
     "test-watch": "npx jest --watch",
-    "build": "microbundle --compress"
+    "build": "microbundle -f cjs,umd --compress"
   },
   "peerDependencies": {
     "react": ">=16.12.0",
