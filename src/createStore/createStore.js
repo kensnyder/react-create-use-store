@@ -82,7 +82,7 @@ export function createStore({
     Object.keys(actions).forEach(name => {
       const action = actions[name];
       store.actions[name] = (...args) => {
-        action([state, _setAll], ...args);
+        action([store.state, _setAll], ...args);
       };
     });
   }
