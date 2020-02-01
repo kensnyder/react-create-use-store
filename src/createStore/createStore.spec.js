@@ -18,8 +18,8 @@ describe('createStore()', () => {
     expect(typeof store.actions.add).toBe('function');
   });
   it('should build actions and manipulate state', async () => {
-    const add = ([state, setState], addend) => {
-      setState({ ...state, count: state.count + addend });
+    const add = addend => {
+      store.setState({ ...store.state, count: store.state.count + addend });
     };
     const state = { count: 5 };
     const actions = { add };
@@ -28,21 +28,23 @@ describe('createStore()', () => {
     await store.nextState();
     expect(store.state.count).toBe(8);
   });
-  it('should allow resetting', () => {
-    const add = ([state, setState], addend) => {
-      setState({ ...state, count: state.count + addend });
+  it('should allow resetting', async () => {
+    const add = addend => {
+      store.setState({ ...store.state, count: store.state.count + addend });
     };
-    const state = { count: 5 };
+    const state = { count: 2 };
     const actions = { add };
     const store = createStore({ state, actions });
-    store.actions.add(3);
+    store.actions.add(1);
+    await store.nextState();
     store.reset();
+    await store.nextState();
     expect(store.state).toBe(state);
   });
   it('should allow async setState', done => {
-    const add = ([state, setState], addend) => {
-      Promise.resolve(state.total + addend).then(total => {
-        setState(old => ({ ...old, total }));
+    const add = addend => {
+      Promise.resolve(store.state.total + addend).then(total => {
+        store.setState(old => ({ ...old, total }));
       });
     };
     const state = { foo: 'bar', total: 5 };

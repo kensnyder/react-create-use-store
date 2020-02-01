@@ -20,8 +20,7 @@ npm install --save react-create-use-store
 
 ## Features
 
-1. Instead of reducers or observables, define "actions": functions that take
-   a `[state, setState]` pair and then arguments
+1. Instead of reducers or observables, define action functions
 1. Store actions are easily testable
 1. Stores can respond to component lifecycle events including unmount
    (e.g. to abort fetching data)
@@ -45,13 +44,14 @@ const state = { count: 0 };
 
 // list of action functions
 const actions = {
-  add([, setState], addend) {
-    setState(old => ({ ...old, count: old.count + addend }));
+  add(addend) {
+    store.setState(old => ({ ...old, count: old.count + addend }));
   },
 };
 
 // create and export the store
-export default createStore({ state, actions });
+const store = createStore({ state, actions });
+export default store;
 ```
 
 In src/components/PlusTwo/PlusTwo.js
@@ -102,20 +102,20 @@ const state = {
   stories: [],
 };
 
-// export action functions so they can be unit testable
-export function showView([, setState], view) {
+// define action functions
+function showView(view) {
   setState(old => ({ ...old, view }));
 }
 
-async function searchStories([, setState], term = '') {
-  setState(old => ({ ...old, isLoading: true, stories: [] }));
+async function searchStories(term = '') {
+  store.setState(old => ({ ...old, isLoading: true, stories: [] }));
   const stories = await api.get('/api/stories', { term });
-  setState(old => ({ ...old, isLoading: false, stories }));
+  store.setState(old => ({ ...old, isLoading: false, stories }));
 }
 
-async function deleteStory([state, setState], story) {
-  const stories = state.stories.filter(s => s !== story);
-  setState(old => ({ ...old, stories }));
+async function deleteStory(story) {
+  const stories = store.state.stories.filter(s => s !== story);
+  store.setState(old => ({ ...old, stories }));
   const deletedOk = await api.delete(`/api/stories/${story.id}`);
   if (!deletedOk) {
     alert('Server error deleting story');
@@ -130,11 +130,12 @@ const actions = {
 };
 
 // create and export the store
-export default createStore({
+const store = createStore({
   state,
   actions,
   afterFirstMount: searchStories,
 });
+export default store;
 ```
 
 In src/components/StoryListing/StoryListing.js
@@ -199,44 +200,27 @@ export default function StoryItem({ story }) {
 }
 ```
 
-## Writing Actions
+## Writing actions
 
-When writing an action function, the first argument is the `[state, setState]` pair.
-Subsequent arguments are those that consumers should pass in. For example, a login
-action might be defined with three arguments:
-
-```jsx harmony
-function login([state, setState], username, password) {}
-```
-
-But be invoked with two arguments:
-
-```jsx harmony
-export default function LoginForm() {
-  const { actions } = useStore(authStore);
-  // ...
-  actions.login(username, password);
-}
-```
-
-The `[state, setState]` pairs work exactly like `useState()` pairs. The `state`
-value should not be changed directly; it is shared across all components that
-consume the store through `useStore()`. The `setState` function can be called
-with a value that should replace the current state or an updater function that
-will receive old state and return new state. Calling `setState` will trigger a
-re-render on all components that consume the state.
+`store.state` and `store.setState` work exactly like `useState()` pairs. The
+`store.state` value should not be changed directly; it is shared across all
+components that consume the store through `useStore()`. The `store.setState`
+function can be called with a value that should replace the current state or an
+updater function that will receive old state and return new state. Calling
+`state.setState` will trigger a re-render on all components that consume the
+state.
 
 Note that by default, state persists even when all consumers have unmounted.
 The effect is similar to having a global state that your top level `<App />`
-consumes. To disable, create the state with `autoReset` set to true.
+consumes. To disable persistence, create the state with `autoReset` set to true.
 
 Many global-state patterns like Redux do not have built-in ways to code split.
 In this library, code splitting can happen naturally because consumers must
 `import` any stores they want to use.
 
-The following are good use cases for this library. They benefit from having
-state that persists after unmounting and from co-locating action functions with
-state values they affect.
+The following are especially good use cases for this library. They benefit from
+having state that persists after unmounting and from co-locating action
+functions with state values they affect.
 
 - Authentication
   - Only some routes care about logged-in status
@@ -249,7 +233,7 @@ state values they affect.
   - Only some components care about the current theme
   - Associated actions include loading theme, changing theme, adding a theme
 - Multi-step events (e.g. user path analytics)
-  - Let's say we need to classify the successfulness of a search
+  - Let's say we need to classify the success of a search
   - Some definitions:
     - A "failed search" is one that elicits no clicks
     - A "fruitless search" is one that produces no results
@@ -290,7 +274,7 @@ For shared stores, e.g. a theme store:
 - src/stores/theme/themeStore.js
 - src/stores/theme/themeStore.spec.js
 
-For components or pages with private state, e.g. a header:
+For reusable components or pages with private state, e.g. a header:
 
 - src/components/Header/Header.js
 - src/components/Header/Header.spec.js

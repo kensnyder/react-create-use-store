@@ -18,8 +18,8 @@ describe('useStore()', () => {
   beforeEach(() => {
     const state = { view: 'grid' };
     const actions = {
-      setView([, setState], view) {
-        setState(old => ({ ...old, view }));
+      setView(view) {
+        store.setState(old => ({ ...old, view }));
       },
     };
     const afterFirstMount = () => {
@@ -59,11 +59,11 @@ describe('useStore()', () => {
       afterLastUnmount,
     });
   });
-  it('should have initial state', () => {
+  it('should have state state', async () => {
     // set up
     const useIt = () => useStore(store);
     const { result } = renderHook(useIt);
-    // check initial state
+    // check state state
     expect(result.current.state.view).toBe('grid');
   });
   it('should respond to actions', async () => {
@@ -71,10 +71,10 @@ describe('useStore()', () => {
     const useIt = () => useStore(store);
     const { result } = renderHook(useIt);
     // call an action
-    act(() => {
+    await act(async () => {
       result.current.actions.setView('list');
+      await result.current.nextState();
     });
-    await result.current.nextState();
     expect(result.current.state.view).toBe('list');
   });
   it('should respond to clicks', async () => {

@@ -14,12 +14,13 @@ let storeIdx = 1;
  * @property {Function} [config.afterLastUnmount] - Callback when all user components unmount
  * @property {String} [config.id] - The id string for debugging
  * @return {Object} store - Info and methods for working with the store
+ * @property {Function} store.state - the current state value
+ * @property {Object} store.actions - Methods that can be called to affect state
+ * @property {Function} store.setState - function to set a new state value
+ * @property {Function} store.nextState - function that returns a Promise that resolves on next state value
+ * @property {Function} store.reset - Reset the store's state to its original value
  * @property {String} store.id - The id or number of the store
  * @property {Number} store.idx - The index order of the store in order of definition
- * @property {Function} store.addActions - Register more actions for this store
- * @property {Function} store.reset - Reset the store's state to its original value
- * @property {Object} store.actions - Methods that can be called to affect state
- * @property {Function} nextState - function that returns a Promise that resolves on next state value
  * @property {Function} store._subscribe - A method to add a setState callback that should be notified on changes
  * @property {Function} store._unsubscribe - A method to remove a setState callback
  * @property {Number} store._usedCount - The number of components that have ever used this store
@@ -45,17 +46,14 @@ export function createStore({
   const store = {
     // A store's state can be reset to its original value
     reset: () => _setAll(state),
-    // add more action functions to this state
-    addActions,
     // the value represented
     state: state,
     // set the state and update all components that use this store
     setState: _setAll,
     // return a Promise that will be resolve on next state change
     nextState,
-    // functions that receive [state, setState] as the first argument
-    // and act on state
-    actions: {},
+    // functions that act on state
+    actions,
     // an identifier for debugging
     id: String(id || `store-${storeIdx}`),
     // internal counter
@@ -68,29 +66,12 @@ export function createStore({
     _usedCount: 0,
   };
 
-  // add any actions that are given at this time
-  addActions(actions);
-
   // return this store
   return store;
 
   //
   // functions only beyond this point
   //
-
-  /**
-   * Add action functions to this state
-   * @param {Object} actions
-   */
-  function addActions(actions) {
-    // create dependency-injected versions of the given action functions
-    Object.keys(actions).forEach(name => {
-      const action = actions[name];
-      store.actions[name] = (...args) => {
-        return action([store.state, _setAll], ...args);
-      };
-    });
-  }
 
   function nextState() {
     return new Promise(resolve => {
@@ -105,14 +86,14 @@ export function createStore({
    */
   function _subscribe(setState) {
     if (store._usedCount++ === 0) {
-      onFirstUse([store.state, _setAll]);
+      onFirstUse();
     }
     if (_setters.length === 0) {
-      afterFirstMount([store.state, _setAll]);
+      afterFirstMount();
     }
     if (_setters.indexOf(setState) === -1) {
       _setters.push(setState);
-      afterEachMount([store.state, _setAll]);
+      afterEachMount();
     }
   }
 
@@ -123,12 +104,12 @@ export function createStore({
    */
   function _unsubscribe(setState) {
     _setters = _setters.filter(setter => setter !== setState);
-    afterEachUnmount([store.state, _setAll]);
+    afterEachUnmount();
     if (_setters.length === 0) {
       if (autoReset) {
         store.reset();
       }
-      afterLastUnmount([store.state, _setAll]);
+      afterLastUnmount();
     }
   }
 
