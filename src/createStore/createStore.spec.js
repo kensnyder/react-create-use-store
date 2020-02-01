@@ -17,7 +17,7 @@ describe('createStore()', () => {
     const store = createStore({ actions: { add } });
     expect(typeof store.actions.add).toBe('function');
   });
-  it('should build actions and manipulate state', () => {
+  it('should build actions and manipulate state', async () => {
     const add = ([state, setState], addend) => {
       setState({ ...state, count: state.count + addend });
     };
@@ -25,6 +25,7 @@ describe('createStore()', () => {
     const actions = { add };
     const store = createStore({ state, actions });
     store.actions.add(3);
+    await store.nextState();
     expect(store.state.count).toBe(8);
   });
   it('should allow resetting', () => {

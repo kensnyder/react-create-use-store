@@ -6,6 +6,7 @@ import { useState, useEffect, useDebugValue } from 'react';
  * @property {*} state - The value in the store
  * @property {Object} actions - functions defined by createStore
  * @property {Function} reset - function to reset the store's state to its initial value
+ * @property {Function} nextState - function that returns a Promise that resolves on next state value
  */
 export function useStore(store) {
   const [, setState] = useState(store.state);
@@ -21,5 +22,6 @@ export function useStore(store) {
     state: store.state,
     actions: store.actions,
     reset: store.reset,
+    nextState: store.nextState,
   };
 }

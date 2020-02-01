@@ -19,6 +19,7 @@ let storeIdx = 1;
  * @property {Function} store.addActions - Register more actions for this store
  * @property {Function} store.reset - Reset the store's state to its original value
  * @property {Object} store.actions - Methods that can be called to affect state
+ * @property {Function} nextState - function that returns a Promise that resolves on next state value
  * @property {Function} store._subscribe - A method to add a setState callback that should be notified on changes
  * @property {Function} store._unsubscribe - A method to remove a setState callback
  * @property {Number} store._usedCount - The number of components that have ever used this store
@@ -36,6 +37,8 @@ export function createStore({
 }) {
   // list of setState functions for Components that use this store
   let _setters = [];
+  // list of resolve functions for awaiting nextState
+  let _nextStateResolvers = [];
 
   // define the store object,
   // which should normally not be consumed directly
@@ -48,6 +51,8 @@ export function createStore({
     state: state,
     // set the state and update all components that use this store
     setState: _setAll,
+    // return a Promise that will be resolve on next state change
+    nextState,
     // functions that receive [state, setState] as the first argument
     // and act on state
     actions: {},
@@ -82,8 +87,14 @@ export function createStore({
     Object.keys(actions).forEach(name => {
       const action = actions[name];
       store.actions[name] = (...args) => {
-        action([store.state, _setAll], ...args);
+        return action([store.state, _setAll], ...args);
       };
+    });
+  }
+
+  function nextState() {
+    return new Promise(resolve => {
+      _nextStateResolvers.push(resolve);
     });
   }
 
@@ -94,14 +105,14 @@ export function createStore({
    */
   function _subscribe(setState) {
     if (store._usedCount++ === 0) {
-      onFirstUse(store);
+      onFirstUse([store.state, _setAll]);
     }
     if (_setters.length === 0) {
-      afterFirstMount(store);
+      afterFirstMount([store.state, _setAll]);
     }
     if (_setters.indexOf(setState) === -1) {
       _setters.push(setState);
-      afterEachMount(store);
+      afterEachMount([store.state, _setAll]);
     }
   }
 
@@ -112,12 +123,12 @@ export function createStore({
    */
   function _unsubscribe(setState) {
     _setters = _setters.filter(setter => setter !== setState);
-    afterEachUnmount(store);
+    afterEachUnmount([store.state, _setAll]);
     if (_setters.length === 0) {
       if (autoReset) {
         store.reset();
       }
-      afterLastUnmount(store);
+      afterLastUnmount([store.state, _setAll]);
     }
   }
 
@@ -130,7 +141,17 @@ export function createStore({
     if (typeof newState === 'function') {
       newState = newState(store.state);
     }
-    store.state = newState;
-    _setters.forEach(setter => setter(newState));
+    // queue state update for next tick
+    // see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask
+    Promise.resolve()
+      .then(() => {
+        store.state = newState;
+        _setters.forEach(setter => setter(store.state));
+        _nextStateResolvers.forEach(resolver => resolver(store.state));
+        _nextStateResolvers = [];
+      })
+      .catch(e => {
+        throw e;
+      });
   }
 }

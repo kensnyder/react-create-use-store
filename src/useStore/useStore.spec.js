@@ -74,6 +74,7 @@ describe('useStore()', () => {
     act(() => {
       result.current.actions.setView('list');
     });
+    await result.current.nextState();
     expect(result.current.state.view).toBe('list');
   });
   it('should respond to clicks', async () => {
