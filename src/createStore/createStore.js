@@ -37,9 +37,9 @@ export function createStore({
   id = null,
 }) {
   // list of setState functions for Components that use this store
-  let _setters = [];
+  const _setters = [];
   // list of resolve functions for awaiting nextState
-  let _nextStateResolvers = [];
+  const _nextStateResolvers = [];
 
   // define the store object,
   // which should normally not be consumed directly
@@ -103,7 +103,10 @@ export function createStore({
    * @private
    */
   function _unsubscribe(setState) {
-    _setters = _setters.filter(setter => setter !== setState);
+    const idx = _setters.indexOf(setState);
+    if (idx > -1) {
+      _setters.splice(idx, 1);
+    }
     afterEachUnmount();
     if (_setters.length === 0) {
       if (autoReset) {
@@ -129,7 +132,7 @@ export function createStore({
         store.state = newState;
         _setters.forEach(setter => setter(store.state));
         _nextStateResolvers.forEach(resolver => resolver(store.state));
-        _nextStateResolvers = [];
+        _nextStateResolvers.length = 0;
       })
       .catch(e => {
         throw e;

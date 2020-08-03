@@ -1,11 +1,6 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
-import {
-  render,
-  fireEvent,
-  screen,
-  waitForElement,
-} from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useStore } from './useStore.js';
 import { createStore } from '../createStore/createStore.js';
@@ -85,12 +80,12 @@ describe('useStore()', () => {
     expect(report).toHaveTextContent('view=list');
   });
   it('should allow resetting', async () => {
-    const { getByText } = render(<Component />);
+    const { getByText, findByText } = render(<Component />);
     expect(getByText('view=grid')).toBeInTheDocument();
     fireEvent.click(getByText('Show List'));
-    await waitForElement(() => getByText('view=list'));
+    await findByText('view=list');
     fireEvent.click(getByText('Reset'));
-    await waitForElement(() => getByText('view=grid'));
+    await findByText('view=grid');
     expect(getByText('view=grid')).toBeInTheDocument();
   });
   it('should call afterFirstMount', () => {

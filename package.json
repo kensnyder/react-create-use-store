@@ -1,7 +1,7 @@
 {
   "name": "react-create-use-store",
   "description": "Simple state management for React using hooks",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "source": "src/index.js",
   "main": "dist/index.js",
   "repository": {
@@ -24,28 +24,29 @@
   "scripts": {
     "test": "npx jest",
     "test-watch": "npx jest --watch",
-    "build": "microbundle -f cjs,umd --compress"
+    "build": "npx microbundle -f cjs,umd --compress"
   },
   "peerDependencies": {
-    "react": ">=16.12.0",
-    "react-dom": ">=16.12.0"
+    "react": ">=16.13.1",
+    "react-dom": ">=16.13.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.8.4",
-    "@babel/plugin-transform-regenerator": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.8.3",
-    "@babel/preset-env": "^7.8.4",
-    "@babel/preset-react": "^7.8.3",
-    "@testing-library/jest-dom": "^5.1.0",
-    "@testing-library/react": "^9.4.0",
-    "@testing-library/react-hooks": "^3.2.1",
-    "babel-jest": "^25.1.0",
+    "@babel/core": "^7.11.0",
+    "@babel/plugin-transform-regenerator": "^7.10.4",
+    "@babel/plugin-transform-runtime": "^7.11.0",
+    "@babel/preset-env": "^7.11.0",
+    "@babel/preset-react": "^7.10.4",
+    "@testing-library/jest-dom": "^5.11.2",
+    "@testing-library/react": "^10.4.7",
+    "@testing-library/react-hooks": "^3.4.1",
+    "babel-jest": "^26.2.2",
     "babel-preset-react": "^6.24.1",
-    "jest": "^25.1.0",
-    "microbundle": "^0.11.0",
-    "prettier": "^1.19.1",
-    "react": "^16.12.0",
-    "react-dom": "^16.12.0",
-    "react-test-renderer": "^16.12.0"
+    "jest": "^26.2.2",
+    "microbundle": "^0.12.3",
+    "prettier": "^2.0.5",
+    "react": ">=16.13.1",
+    "react-dom": ">=16.13.1",
+    "react-scripts": "3.4.1",
+    "react-test-renderer": "^16.13.1"
   }
 }
