@@ -1,4 +1,4 @@
-import { useState, useEffect, useDebugValue } from 'react';
+const { useState, useEffect, useDebugValue } = require('react');
 
 /**
  * @param {Object} store - A store created with createStore()
@@ -8,7 +8,7 @@ import { useState, useEffect, useDebugValue } from 'react';
  * @property {Function} reset - function to reset the store's state to its initial value
  * @property {Function} nextState - function that returns a Promise that resolves on next state value
  */
-export function useStore(store) {
+function useStore(store) {
   const [, setState] = useState(store.state);
 
   useDebugValue(store);
@@ -25,3 +25,5 @@ export function useStore(store) {
     nextState: store.nextState,
   };
 }
+
+module.exports = useStore;

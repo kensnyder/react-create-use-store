@@ -25,7 +25,7 @@ let storeIdx = 1;
  * @property {Function} store._unsubscribe - A method to remove a setState callback
  * @property {Number} store._usedCount - The number of components that have ever used this store
  */
-export function createStore({
+function createStore({
   state = {},
   actions = {},
   autoReset = false,
@@ -40,6 +40,8 @@ export function createStore({
   const _setters = [];
   // list of resolve functions for awaiting nextState
   const _nextStateResolvers = [];
+  // list of functions that will manipulate state in the next tick
+  const _updaterFunctionQueue = [];
 
   // define the store object,
   // which should normally not be consumed directly
@@ -64,6 +66,7 @@ export function createStore({
     _unsubscribe,
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
+    _updaterFunctionQueue: [],
   };
 
   // return this store
@@ -122,15 +125,31 @@ export function createStore({
    * @private
    */
   function _setAll(newState) {
+    let updater;
     if (typeof newState === 'function') {
-      newState = newState(store.state);
+      updater = newState;
+    } else {
+      updater = () => newState;
     }
+    _updaterFunctionQueue.push(updater);
+    if (_updaterFunctionQueue.length === 1) {
+      _scheduleUpdates();
+    }
+  }
+
+  function _scheduleUpdates() {
     // queue state update for next tick
     // see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask
     Promise.resolve()
-      .then(() => {
-        store.state = newState;
+      .then(async () => {
+        // run all updaters
+        _updaterFunctionQueue.forEach(
+          updater => (store.state = updater(store.state))
+        );
+        _updaterFunctionQueue.length = 0;
+        // update all components
         _setters.forEach(setter => setter(store.state));
+        // resolve all `await store.nextState()` calls
         _nextStateResolvers.forEach(resolver => resolver(store.state));
         _nextStateResolvers.length = 0;
       })
@@ -139,3 +158,5 @@ export function createStore({
       });
   }
 }
+
+module.exports = createStore;

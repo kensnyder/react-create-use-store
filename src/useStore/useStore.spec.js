@@ -2,8 +2,8 @@ import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { render, fireEvent, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useStore } from './useStore.js';
-import { createStore } from '../createStore/createStore.js';
+import useStore from './useStore.js';
+import createStore from '../createStore/createStore.js';
 
 describe('useStore()', () => {
   // define store before each test

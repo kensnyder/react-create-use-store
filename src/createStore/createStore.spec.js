@@ -1,4 +1,4 @@
-import { createStore } from './createStore.js';
+const createStore = require('./createStore.js');
 
 describe('createStore()', () => {
   it('should have required properties', () => {
@@ -27,6 +27,21 @@ describe('createStore()', () => {
     store.actions.add(3);
     await store.nextState();
     expect(store.state.count).toBe(8);
+  });
+  it('should build and queue actions and manipulate state', async () => {
+    const add = addend => {
+      store.setState(() => ({
+        ...store.state,
+        count: store.state.count + addend,
+      }));
+    };
+    const state = { count: 5 };
+    const actions = { add };
+    const store = createStore({ state, actions });
+    store.actions.add(3);
+    store.actions.add(2);
+    await store.nextState();
+    expect(store.state.count).toBe(10);
   });
   it('should allow resetting', async () => {
     const add = addend => {
