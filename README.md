@@ -1,16 +1,14 @@
 # react-create-use-store
 
-[![Build Status](https://travis-ci.com/kensnyder/react-create-use-store.svg?branch=master&v=4.0.0)](https://travis-ci.com/kensnyder/react-create-use-store)
-[![Code Coverage](https://codecov.io/gh/kensnyder/react-create-use-store/branch/master/graph/badge.svg?v=4.0.0)](https://codecov.io/gh/kensnyder/react-create-use-store)
-[![ISC License](https://img.shields.io/npm/l/react-create-use-store.svg?v=4.0.0)](https://opensource.org/licenses/ISC)
+[![Build Status](https://travis-ci.com/kensnyder/react-create-use-store.svg?branch=master&v=3.1.0)](https://travis-ci.com/kensnyder/react-create-use-store)
+[![Code Coverage](https://codecov.io/gh/kensnyder/react-create-use-store/branch/master/graph/badge.svg?v=3.1.0)](https://codecov.io/gh/kensnyder/react-create-use-store)
+[![ISC License](https://img.shields.io/npm/l/react-create-use-store.svg?v3.1.0)](https://opensource.org/licenses/ISC)
 
 Simple state management for React using hooks
 
 ```bash
-npm install --save react-create-use-store
+npm install react-create-use-store
 ```
-
-[CodeSandbox Demo](https://codesandbox.io/s/...)
 
 ## Table of contents
 

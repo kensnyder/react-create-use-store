@@ -12,6 +12,7 @@ let storeIdx = 1;
  * @property {Function} [config.afterEachMount] - Callback every time a component first calls useStore()
  * @property {Function} [config.afterEachUnmount] - Callback when any useStore() component unmounts
  * @property {Function} [config.afterLastUnmount] - Callback when all user components unmount
+ * @property {Function} [config.onException] - Callback when an updater function throws an Error
  * @property {String} [config.id] - The id string for debugging
  * @return {Object} store - Info and methods for working with the store
  * @property {Function} store.state - the current state value
@@ -34,6 +35,7 @@ function createStore({
   afterEachMount = () => {},
   afterEachUnmount = () => {},
   afterLastUnmount = () => {},
+  onException = () => {},
   id = null,
 }) {
   // list of setState functions for Components that use this store
@@ -153,9 +155,7 @@ function createStore({
         _nextStateResolvers.forEach(resolver => resolver(store.state));
         _nextStateResolvers.length = 0;
       })
-      .catch(e => {
-        throw e;
-      });
+      .catch(onException);
   }
 }
 

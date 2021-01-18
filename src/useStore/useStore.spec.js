@@ -1,6 +1,6 @@
 import React from 'react';
-import { renderHook, act } from '@testing-library/react-hooks';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { renderHook, act as hookAct } from '@testing-library/react-hooks';
+import { render, fireEvent, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import useStore from './useStore.js';
 import createStore from '../createStore/createStore.js';
@@ -66,7 +66,7 @@ describe('useStore()', () => {
     const useIt = () => useStore(store);
     const { result } = renderHook(useIt);
     // call an action
-    await act(async () => {
+    await hookAct(async () => {
       result.current.actions.setView('list');
       await result.current.nextState();
     });
@@ -110,5 +110,66 @@ describe('useStore()', () => {
     expect(mountDetails.lastUnmount).toBe(false);
     unmount2();
     expect(mountDetails.lastUnmount).toBe(true);
+  });
+});
+describe('useStore() with autoReset', () => {
+  it('should autoReset on unmount', async () => {
+    const state = 0;
+    const actions = {
+      increment() {
+        store.setState(old => old + 1);
+      },
+    };
+    const Component = () => {
+      const { state, actions } = useStore(store);
+      return (
+        <>
+          <button onClick={actions.increment}>Increment</button>
+          <span>Count: {state}</span>
+        </>
+      );
+    };
+    const store = createStore({
+      state,
+      actions,
+      autoReset: true,
+    });
+    const { getByText, unmount } = render(<Component />);
+    expect(getByText('Count: 0')).toBeInTheDocument();
+    expect(getByText('Increment')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(getByText('Increment'));
+      await store.nextState();
+    });
+    expect(getByText('Count: 1')).toBeInTheDocument();
+    unmount();
+    await store.nextState();
+    expect(store.state).toBe(0);
+  });
+});
+describe('useStore() with exception', () => {
+  it('should handle exceptions', done => {
+    const state = null;
+    const actions = {
+      thrower() {
+        store.setState(() => {
+          throw new Error('test');
+        });
+      },
+    };
+    const Component = () => {
+      const { actions } = useStore(store);
+      return <button onClick={actions.thrower}>Throw</button>;
+    };
+    const store = createStore({
+      state,
+      actions,
+      onException: error => {
+        expect(error.message).toBe('test');
+        done();
+      },
+    });
+    const { getByText } = render(<Component />);
+    fireEvent.click(getByText('Throw'));
   });
 });

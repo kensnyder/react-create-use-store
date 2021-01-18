@@ -1,7 +1,7 @@
 {
   "name": "react-create-use-store",
   "description": "Simple state management for React using hooks",
-  "version": "4.0.0",
+  "version": "3.1.0",
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -27,8 +27,8 @@
     "view-coverage": "open ./coverage/lcov-report/index.html"
   },
   "peerDependencies": {
-    "react": ">=16.13.1",
-    "react-dom": ">=16.13.1"
+    "react": ">=17.0.1",
+    "react-dom": ">=17.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
@@ -44,9 +44,9 @@
     "jest": "^26.6.3",
     "microbundle": "^0.13.0",
     "prettier": "^2.2.1",
-    "react": ">=16.13.1",
+    "react": ">=17.0.1",
     "react-dom": ">16.13.1",
     "react-scripts": "4.0.1",
-    "react-test-renderer": "^16.13.1"
+    "react-test-renderer": "^17.0.1"
   }
 }
