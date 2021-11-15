@@ -58,6 +58,10 @@ function createStore({
     nextState,
     // functions that act on state
     actions,
+    // options that a component can pass to store without re-rendering
+    options: null,
+    // a function that sets any options
+    setOptions: _setOptions,
     // an identifier for debugging
     id: String(id || `store-${storeIdx}`),
     // internal counter
@@ -78,6 +82,10 @@ function createStore({
   // functions only beyond this point
   //
 
+  /**
+   * Return a promise that resolves after the state is next updated for all components
+   * @return {Promise<Object>}  Promise that resolves to the new state
+   */
   function nextState() {
     return new Promise(resolve => {
       _nextStateResolvers.push(resolve);
@@ -139,6 +147,20 @@ function createStore({
     }
   }
 
+  /**
+   * Set any additional options the store may respond to.
+   * Options are state values that do not cause re-renders.
+   * @param {*} [options]
+   * @private
+   */
+  function _setOptions(options = null) {
+    store.options = options;
+  }
+
+  /**
+   *
+   * @private
+   */
   function _scheduleUpdates() {
     // queue state update for next tick
     // see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask
