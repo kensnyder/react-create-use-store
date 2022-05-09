@@ -283,6 +283,10 @@ For reusable components or pages with private state, e.g. a header:
 - src/components/Header/store/headerStore.js
 - src/components/Header/store/headerStore.spec.js
 
+## Special store properties
+
+Once you create a store, you can access a few properties directly.
+
 ## Credits
 
 inspired by [@jhonnymichel](https://github.com/jhonnymichel/react-hookstore/blob/6d23d2fcb0e7cf8a3929a01e0c543fe5e05ecf05/src/index.js)

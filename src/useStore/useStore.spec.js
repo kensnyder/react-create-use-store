@@ -111,6 +111,16 @@ describe('useStore()', () => {
     unmount2();
     expect(mountDetails.lastUnmount).toBe(true);
   });
+  it('should properly count mounts', () => {
+    const { unmount: unmount1 } = render(<Component />);
+    expect(store.getMountCount()).toBe(1);
+    const { unmount: unmount2 } = render(<Component />);
+    expect(store.getMountCount()).toBe(2);
+    unmount1();
+    expect(store.getMountCount()).toBe(1);
+    unmount2();
+    expect(store.getMountCount()).toBe(0);
+  });
 });
 describe('useStore() with autoReset', () => {
   it('should autoReset on unmount', async () => {

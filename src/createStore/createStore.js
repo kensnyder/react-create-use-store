@@ -1,3 +1,5 @@
+const isPromise = require('../isPromise/isPromise.js');
+
 // an internal counter for stores
 let storeIdx = 1;
 
@@ -44,6 +46,8 @@ function createStore({
   const _nextStateResolvers = [];
   // list of functions that will manipulate state in the next tick
   const _updaterFunctionQueue = [];
+  // state maintained by the store that does not trigger re-renders
+  let _options = null;
 
   // define the store object,
   // which should normally not be consumed directly
@@ -54,25 +58,32 @@ function createStore({
     state: state,
     // set the state and update all components that use this store
     setState: _setAll,
+    // set partial state
+    setPartialState: _setPartialAll,
+    // utility for create an action function that sets a single value
+    createSetter: _createSetter,
     // return a Promise that will be resolve on next state change
     nextState,
+    // get the number of mounted components using this state
+    getMountCount: _getMountCount,
     // functions that act on state
     actions,
-    // options that a component can pass to store without re-rendering
-    options: null,
+    // set options that a component can pass to store without causing a re-render
+    getOptions: _getOptions,
     // a function that sets any options
     setOptions: _setOptions,
     // an identifier for debugging
     id: String(id || `store-${storeIdx}`),
     // internal counter
     idx: storeIdx++,
+    // number of components that are currently using this store
+    mountCount: 0,
     // private: useStore() can subscribe to all store changes
     _subscribe,
     // private: useStore() can unsubscribe from changes
     _unsubscribe,
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
-    _updaterFunctionQueue: [],
   };
 
   // return this store
@@ -91,6 +102,10 @@ function createStore({
       _nextStateResolvers.push(resolve);
     });
   }
+
+  // function getConsumerId() {
+  //   return _consumerId++;
+  // }
 
   /**
    * Add a setState function to notify when state changes
@@ -130,6 +145,15 @@ function createStore({
   }
 
   /**
+   *
+   * @return {number}
+   * @private
+   */
+  function _getMountCount() {
+    return _setters.length;
+  }
+
+  /**
    * Notify each of the setState functions of the new state
    * @param {*} newState
    * @private
@@ -147,6 +171,51 @@ function createStore({
     }
   }
 
+  function _setPartialAll(newState) {
+    let updater;
+    if (typeof newState === 'function') {
+      updater = async state => {
+        let partial = newState(state);
+        if (isPromise(partial)) {
+          partial = await partial;
+        }
+        return { ...store.state, ...partial };
+      };
+    } else {
+      updater = { ...store.state, ...newState };
+    }
+    _updaterFunctionQueue.push(updater);
+    if (_updaterFunctionQueue.length === 1) {
+      _scheduleUpdates();
+    }
+  }
+
+  function _createSetter(propName) {
+    return function merger(newValue) {
+      if (typeof newValue === 'function') {
+        store.setState(async state => {
+          newValue = newValue(state[propName]);
+          if (isPromise(newValue)) {
+            newValue = await newValue;
+          }
+          return { ...store.state, [propName]: newValue };
+        });
+      } else {
+        store.setState({ ...store.state, [propName]: newValue });
+      }
+    };
+  }
+
+  /**
+   * Get the current value of options
+   * Options are state values that do not cause re-renders.
+   * @returns {*}
+   * @private
+   */
+  function _getOptions() {
+    return _options;
+  }
+
   /**
    * Set any additional options the store may respond to.
    * Options are state values that do not cause re-renders.
@@ -154,7 +223,31 @@ function createStore({
    * @private
    */
   function _setOptions(options = null) {
-    store.options = options;
+    _options = options;
+  }
+
+  /**
+   *
+   * @param prev
+   * @param next
+   * @return {(function(*): void)|*}
+   * @private
+   */
+  function _updateSelectedComponents(prev, next) {
+    return function _maybeSetState(setter) {
+      if (typeof setter.mapState === 'function') {
+        // component wants only a slice of state
+        const prevSelected = setter.mapState(prev);
+        const nextSelected = setter.mapState(next);
+        if (!setter.equalityFn(prevSelected, nextSelected)) {
+          // the slice of state is not equal so rerender component
+          setter(nextSelected);
+        }
+      } else {
+        // no mapState; always rerender component
+        setter(next);
+      }
+    };
   }
 
   /**
@@ -166,15 +259,24 @@ function createStore({
     // see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask
     Promise.resolve()
       .then(async () => {
+        const prevState = store.state;
+        let nextState = store.state;
         // run all updaters
-        _updaterFunctionQueue.forEach(
-          updater => (store.state = updater(store.state))
-        );
+        for (const updater of _updaterFunctionQueue) {
+          nextState = updater(nextState);
+          if (isPromise(nextState)) {
+            nextState = await nextState;
+          }
+        }
+        // store final state result
+        store.state = nextState;
+        // clear out the updater queue
         _updaterFunctionQueue.length = 0;
-        // update all components
-        _setters.forEach(setter => setter(store.state));
+        // update components with no selector or with matching selector
+        _setters.forEach(_updateSelectedComponents(prevState, store.state));
         // resolve all `await store.nextState()` calls
         _nextStateResolvers.forEach(resolver => resolver(store.state));
+        // clear out list of those awaiting
         _nextStateResolvers.length = 0;
       })
       .catch(onException);
