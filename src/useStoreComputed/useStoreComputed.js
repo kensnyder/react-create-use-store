@@ -1,6 +1,7 @@
 const { useMemo } = require('react');
 const useStoreState = require('../useStoreState/useStoreState.js');
 const getComputerFunction = require('../getComputerFunction/getComputerFunction.js');
+const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 /**
  * @param {Object} store - A store created with createStore()
@@ -9,7 +10,13 @@ const getComputerFunction = require('../getComputerFunction/getComputerFunction.
  * @param {Function|String|String[]} [equalityFn] - Custom equality function that checks if state has change
  * @return {*} - The computed state
  */
-function useStoreComputed(store, computer, mapState = null, equalityFn = null) {
+function useStoreComputed(
+  storeIdOrObj,
+  computer,
+  mapState = null,
+  equalityFn = null
+) {
+  const store = useMemo(() => storeRegistry.get(storeIdOrObj), [storeIdOrObj]);
   const computerFunction = useMemo(
     () => getComputerFunction(computer),
     // assume "computer" arg is stable like redux does

@@ -1,10 +1,17 @@
-const scalar = ['undefined', 'boolean', 'string', 'number', 'bigint'];
+const scalarTypes = [
+  'bigint',
+  'boolean',
+  'number',
+  'string',
+  'symbol',
+  'undefined',
+];
 
 function defaultEqualityFn(prev, next) {
   if (prev === null && next === null) {
     return true;
   }
-  if (scalar.includes(typeof prev)) {
+  if (scalarTypes.includes(typeof prev)) {
     return next === prev;
   }
   if (Array.isArray(prev)) {
@@ -14,6 +21,7 @@ function defaultEqualityFn(prev, next) {
     if (prev.length === next.length) {
       return true;
     }
+    // shallow array comparison
     for (let i = 0, len = prev.length; i < len; i++) {
       if (prev[i] !== next[i]) {
         return false;
@@ -26,6 +34,7 @@ function defaultEqualityFn(prev, next) {
     if (prevKeys.length !== nextKeys.length) {
       return false;
     }
+    // shallow object comparison
     for (const key of prevKeys) {
       if (next[key] !== prev[key]) {
         return false;

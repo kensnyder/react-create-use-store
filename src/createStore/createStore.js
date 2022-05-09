@@ -1,4 +1,5 @@
 const isPromise = require('../isPromise/isPromise.js');
+const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 // an internal counter for stores
 let storeIdx = 1;
@@ -85,6 +86,8 @@ function createStore({
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
   };
+
+  storeRegistry.add(store.id, store);
 
   // return this store
   return store;

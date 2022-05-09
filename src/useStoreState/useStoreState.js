@@ -1,6 +1,7 @@
 const { useState, useEffect, useMemo } = require('react');
 const defaultEqualityFn = require('../defaultEqualityFn/defaultEqualityFn.js');
 const getMapper = require('../getMapper/getMapper.js');
+const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 /**
  * @param {Object} store - A store created with createStore()
@@ -12,7 +13,8 @@ const getMapper = require('../getMapper/getMapper.js');
  * @property {Function} reset - function to reset the store's state to its initial value
  * @property {Function} nextState - function that returns a Promise that resolves on next state value
  */
-function useStoreState(store, mapState = null, equalityFn = null) {
+function useStoreState(storeIdOrObj, mapState = null, equalityFn = null) {
+  const store = useMemo(() => storeRegistry.get(storeIdOrObj), [storeIdOrObj]);
   // derive and cache the mapState and equalityFn
   const [map, isEqual] = useMemo(() => {
     if (mapState === null && equalityFn === null) {

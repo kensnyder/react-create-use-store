@@ -1,5 +1,6 @@
 const { useMemo } = require('react');
 const useStoreState = require('../useStoreState/useStoreState.js');
+const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 /**
  * @param {Object} store - A store created with createStore()
@@ -11,7 +12,8 @@ const useStoreState = require('../useStoreState/useStoreState.js');
  * @property {Function} reset - function to reset the store's state to its initial value
  * @property {Function} nextState - function that returns a Promise that resolves on next state value
  */
-function useStore(store, mapState = null, equalityFn = null) {
+function useStore(storeIdOrObj, mapState = null, equalityFn = null) {
+  const store = useMemo(() => storeRegistry.get(storeIdOrObj), [storeIdOrObj]);
   const state = useStoreState(store, mapState, equalityFn);
 
   const used = useMemo(
