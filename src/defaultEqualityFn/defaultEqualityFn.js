@@ -7,19 +7,32 @@ const scalarTypes = [
   'undefined',
 ];
 
+/**
+ * A default way to check if two slices of state are equal
+ * Used to determine if a component should rerender or not
+ * @param {*} prev - The previous value of the state
+ * @param {*} next - The next value of the state
+ * @return {Boolean} - True if values are shallowly equal
+ */
 function defaultEqualityFn(prev, next) {
   if (prev === null && next === null) {
+    // both null
     return true;
+  } else if (prev === null || next === null) {
+    // one is null but not both
+    return false;
   }
   if (scalarTypes.includes(typeof prev)) {
     return next === prev;
   }
   if (Array.isArray(prev)) {
     if (!Array.isArray(next)) {
+      // one array and one non-array
       return false;
     }
-    if (prev.length === next.length) {
-      return true;
+    if (prev.length !== next.length) {
+      // array cannot be the same because it has different lengths
+      return false;
     }
     // shallow array comparison
     for (let i = 0, len = prev.length; i < len; i++) {

@@ -4,7 +4,7 @@ const getComputerFunction = require('../getComputerFunction/getComputerFunction.
 const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 /**
- * @param {Object} store - A store created with createStore()
+ * @param {Object} storeIdOrObj - A store created with createStore()
  * @param {Function|String} [computer] - Function that takes a state and returns a single value
  * @param {Function|String|String[]} [mapState] - Function that returns a slice of data
  * @param {Function|String|String[]} [equalityFn] - Custom equality function that checks if state has change

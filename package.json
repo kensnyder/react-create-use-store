@@ -45,5 +45,8 @@
     "react-dom": ">=16.8.0",
     "react-scripts": "4.0.1",
     "react-test-renderer": "^17.0.1"
+  },
+  "dependencies": {
+    "is-promise": "^4.0.0"
   }
 }

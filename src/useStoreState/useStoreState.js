@@ -1,10 +1,10 @@
 const { useState, useEffect, useMemo } = require('react');
 const defaultEqualityFn = require('../defaultEqualityFn/defaultEqualityFn.js');
-const getMapper = require('../getMapper/getMapper.js');
+const getMapperFunction = require('../getMapperFunction/getMapperFunction.js');
 const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 /**
- * @param {Object} store - A store created with createStore()
+ * @param {Object} storeIdOrObj - A store created with createStore()
  * @param {Function} [mapState] - Function that returns a slice of data
  * @param {Function} [equalityFn] - Custom equality function that checks if state has change
  * @return {Object} - tools for working with the store
@@ -20,7 +20,7 @@ function useStoreState(storeIdOrObj, mapState = null, equalityFn = null) {
     if (mapState === null && equalityFn === null) {
       return [null, null];
     }
-    return [getMapper(mapState), equalityFn || defaultEqualityFn];
+    return [getMapperFunction(mapState), equalityFn || defaultEqualityFn];
     // assume "mapState" and "equalityFn" args are stable like redux does
   }, []);
 

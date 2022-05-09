@@ -3,7 +3,7 @@ const useStoreState = require('../useStoreState/useStoreState.js');
 const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 /**
- * @param {Object} store - A store created with createStore()
+ * @param {Object} storeIdOrObj - A store created with createStore()
  * @param {Function} [mapState] - Function that returns a slice of data
  * @param {Function} [equalityFn] - Custom equality function that checks if state has change
  * @return {Object} - state and tools for working with the store
@@ -16,6 +16,7 @@ function useStore(storeIdOrObj, mapState = null, equalityFn = null) {
   const store = useMemo(() => storeRegistry.get(storeIdOrObj), [storeIdOrObj]);
   const state = useStoreState(store, mapState, equalityFn);
 
+  // make sure returned value is stable
   const used = useMemo(
     () => ({
       actions: store.actions,
@@ -28,6 +29,7 @@ function useStore(storeIdOrObj, mapState = null, equalityFn = null) {
     [store]
   );
 
+  // but its "state" property will change when state is updated
   used.state = state;
 
   return used;
