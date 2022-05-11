@@ -1,6 +1,5 @@
 const Emitter = require('tiny-emitter');
 const isPromise = require('is-promise');
-const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 // an internal counter for stores
 let storeIdx = 1;
@@ -33,20 +32,9 @@ let storeIdx = 1;
 function createStore({
   state: initialState = {},
   actions = {},
-  // persistWith: localStorage,
   autoReset = false,
-  // onFirstUse = () => {}, AfterFirstUse
-  // afterFirstMount = () => {}, AfterFirstMount
-  // afterEachMount = () => {}, AfterMount
-  // afterEachUnmount = () => {}, AfterUnmount
-  // afterLastUnmount = () => {}, AfterLastUnmount
-  // onException = () => {}, SetterException
-  // BeforeUpdate
-  // AfterUpdate
   id = null,
 }) {
-  // function plugin(thing) { thing(store) }
-
   // list of setState functions for Components that use this store
   const _setters = [];
   // list of resolve functions for awaiting nextState
@@ -59,34 +47,36 @@ function createStore({
   // define the store object,
   // which should normally not be consumed directly
   const store = Object.assign(new Emitter(), {
-    // A store's state can be reset to its original value
-    reset: () => _setAll(initialState),
     // the value represented
     state: initialState,
     // functions that act on state
     actions,
-    // set the state and update all components that use this store
-    setState: _setAll,
-    // setSync: (values) => store.state = values;
-    // mergeSync: (values) => store.state = ({...store.state, ...values});
-    // set partial state
-    mergeState: _setPartialAll,
-    // utility for create an action function that sets a single value
-    createSetter: _createSetter,
-    // create a new store with the same initial state and options
-    clone: _cloneStore,
-    // return a Promise that will resolve on next state change
-    nextState,
-    // get the number of mounted components using this state
-    getMountCount: _getMountCount,
-    // set options that a component can pass to store without causing a re-render
-    getOptions: _getOptions,
-    // a function that sets any options
-    setOptions: _setOptions,
     // an identifier for debugging
     id: String(id || `store-${storeIdx}`),
     // internal counter
     idx: storeIdx++,
+    // set the state and update all components that use this store
+    setState,
+    // setSync: (values) => store.state = values;
+    // mergeSync: (values) => store.state = ({...store.state, ...values});
+    // set partial state
+    mergeState,
+    // utility for create an action function that sets a single value
+    createSetter,
+    // create a new store with the same initial state and options
+    clone,
+    // A store's state can be reset to its original value
+    reset,
+    // return a Promise that will resolve on next state change
+    nextState,
+    // get the number of mounted components using this state
+    getMountCount,
+    // set options that a component can pass to store without causing a re-render
+    getOptions,
+    // a function that sets any options
+    setOptions,
+    // register a plugin
+    plugin,
     // number of components that are currently using this store
     mountCount: 0,
     // private: useStore() can subscribe to all store changes
@@ -96,8 +86,6 @@ function createStore({
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
   });
-
-  storeRegistry.add(store.id, store);
 
   // return this store
   return store;
@@ -153,7 +141,7 @@ function createStore({
     }
   }
 
-  function _cloneStore(overrides = {}) {
+  function clone(overrides = {}) {
     return createStore({
       e: { ...store.e }, // events that have been registered
       state: initialState,
@@ -163,12 +151,16 @@ function createStore({
     });
   }
 
+  function reset() {
+    setState(initialState);
+  }
+
   /**
    *
    * @return {number}
    * @private
    */
-  function _getMountCount() {
+  function getMountCount() {
     return _setters.length;
   }
 
@@ -177,14 +169,21 @@ function createStore({
    * @param {*} newState
    * @private
    */
-  function _setAll(newState) {
+  function setState(newState) {
     _updateQueue.push(newState);
     if (_updateQueue.length === 1) {
       _scheduleUpdates();
     }
   }
 
-  function _setPartialAll(newState) {
+  function setSync(newState) {
+    if (typeof newState === 'function') {
+      newState = newState(store.state);
+    }
+    store.state = newState;
+  }
+
+  function mergeState(newState) {
     let updater;
     if (typeof newState === 'function') {
       updater = async old => {
@@ -203,7 +202,14 @@ function createStore({
     }
   }
 
-  function _createSetter(propName) {
+  function mergeSync(newState) {
+    if (typeof newState === 'function') {
+      newState = newState(store.state);
+    }
+    store.state = { ...store.state, ...newState };
+  }
+
+  function createSetter(propName) {
     return function merger(newValue) {
       if (typeof newValue === 'function') {
         store.setState(async state => {
@@ -225,7 +231,7 @@ function createStore({
    * @returns {*}
    * @private
    */
-  function _getOptions() {
+  function getOptions() {
     return _options;
   }
 
@@ -235,8 +241,14 @@ function createStore({
    * @param {*} [options]
    * @private
    */
-  function _setOptions(options = null) {
+  function setOptions(options = null) {
     _options = options;
+  }
+
+  function plugin(thing) {
+    store.emit('BeforePlugin', thing);
+    thing(store);
+    store.emit('AfterPlugin', thing);
   }
 
   /**
@@ -268,6 +280,30 @@ function createStore({
     };
   }
 
+  async function _getNextState() {
+    let nextState = store.state;
+    // process all updates or update functions
+    // use while and shift in case setters trigger more setting
+    let failsafe = 10000;
+    while (_updateQueue.length > 0) {
+      if (--failsafe === 0) {
+        throw new Error(
+          `react-storekeeper: Too many setState calls in queue; probably an infinite loop.`
+        );
+      }
+      const updatedState = _updateQueue.shift();
+      if (typeof updatedState === 'function') {
+        nextState = updatedState(nextState);
+        if (isPromise(nextState)) {
+          nextState = await nextState;
+        }
+      } else {
+        nextState = updatedState;
+      }
+    }
+    return nextState;
+  }
+
   /**
    *
    * @private
@@ -279,19 +315,7 @@ function createStore({
       .then(async () => {
         const prevState = store.state;
         store.emit('BeforeSet', prevState);
-        let nextState = store.state;
-        // process all updates or update functions
-        while (_updateQueue.length > 0) {
-          const updatedState = _updateQueue.shift();
-          if (typeof updatedState === 'function') {
-            nextState = updatedState(nextState);
-            if (isPromise(nextState)) {
-              nextState = await nextState;
-            }
-          } else {
-            nextState = updatedState;
-          }
-        }
+        const nextState = _getNextState();
         store.emit('BeforeUpdate', nextState);
         // save final state result
         store.state = nextState;

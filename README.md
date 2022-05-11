@@ -97,28 +97,76 @@ export function PlusTwo() {
 ```
 
 ```js
-const { state, actions } = adderStore.use();
-const { state, actions } = useStore(adderStore);
-const { state, actions } = useStore(adderStore);
+// I'm creating a successor to react-create-use-store package.
+//
+//The main new feature is the ability to pass a "mapState" function like Redux where
+//   you define a subset of the store state you care about. That allows avoiding
+//   re-rendering a component when irrelevant parts of state change.
+// The example mapState function below is "state => state.count". If the store had a
+//   property called "count" (i.e. number of times a button is clicked) then the
+//   component would only get the integer value of the count.
+// Other examples of mapState functions:
+//   state => ({ fname: state.fname, lname: state.lname })
+//   state => ({ name: `${state.fname} ${state.lname}`, age: state.age })
+//   state => state.age
+// Redux also has a concept of equalityFn where you can pass a custom function that
+//   should return true when the slice of state is equivalent even if shallowly
+//   unequal. You would use that once in a blue moon.
+// A second improvement is that you can useStore() to get the state and actions of a
+//   store, or use useStoreState()/useStoreActions() to grab one or the other
+// Since this is a brand-new library, I'm rethinking architecture and API. I need
+//   your thoughts on whether to use approach 1, 2, or 3.
+//
+// Approach 1 is to add mapState and equalityFn as 2nd and 3rd args.
+// Approach 2 is to add a use() function on the store itself so that mapState and
+//   equalityFn become 1st and 2nd args
+// Approach 3 is to pass mapState and equalityFn in an object
+//
+// Below are code examples of four different use cases.
 
-const { state: count, actions } = adderStore.use(state => state.count);
-const { state: count, actions } = useStore(adderStore, state => state.count);
-const { state: count, actions } = useStore(adderStore, {
+// Use Case A) Using the whole store, no mapState, no equalityFn
+/* 1 */ const { state, actions } = useStore(adderStore);
+/* 2 */ const { state, actions } = adderStore.use();
+/* 3 */ const { state, actions } = useStore(adderStore);
+
+// Use Case B) Using the whole store with mapState, no equalityFn
+/* 1 */ const { state: count, actions } = useStore(
+  adderStore,
+  state => state.count
+);
+/* 2 */ const { state: count, actions } = adderStore.use(state => state.count);
+/* 3 */ const { state: count, actions } = useStore(adderStore, {
   mapState: state => state.count,
 });
 
-const count = adderStore.useState(state => state.count);
-const count = useStoreState(adderStore, state => state.count);
-const count = useStoreState(adderStore, {
+// Use Case C) Using a slice of store with mapState, no equalityFn
+/* 1 */ const count = useStoreState(adderStore, state => state.count);
+/* 2 */ const count = adderStore.useState(state => state.count);
+/* 3 */ const count = useStoreState(adderStore, {
   mapState: state => state.count,
 });
 
-const count = adderStore.useState(state => state.count, equalityFn);
-const count = useStoreState(adderStore, state => state.count, equalityFn);
-const count = useStoreState(adderStore, {
+// Use Case D) The rare case of using a slice of store with mapState and equalityFn
+/* 1 */ const count = useStoreState(
+  adderStore,
+  state => state.count,
+  equalityFn
+);
+/* 2 */ const count = adderStore.useState(state => state.count, equalityFn);
+/* 3 */ const count = useStoreState(adderStore, {
   mapState: state => state.count,
   equalityFn: equalityFn,
 });
+
+// Let me know your thoughts.
+//
+// Some other features that I made:
+// a) mapState can be a string. "name" will become state => state.name
+// b) mapState can be an array. ["name","age"] will become state => ({ name: state.name, age: state.age })
+// c) The store emitted events that allowed me to write and include some plugins:
+//    undo/redo plugin
+//    persist to localStorage plugin
+//    sync state with URL
 ```
 
 In src/stores/adder/adderStore.spec.js
@@ -334,6 +382,22 @@ For reusable components or pages with private state, e.g. a header:
 ## Special store properties
 
 Once you create a store, you can access a few properties directly.
+
+## Events
+
+// AfterFirstUse
+// AfterFirstMount
+// AfterMount
+// AfterUnmount
+// AfterLastUnmount
+// SetterException
+// BeforeSet
+// BeforeUpdate
+// AfterUpdate
+BeforePlugin
+AfterPlugin
+
+## Plugins
 
 ## Credits
 
