@@ -48,6 +48,8 @@ const state = { count: 0 };
 const actions = {
   add(addend) {
     store.setState(old => ({ ...old, count: old.count + addend }));
+    // OR use mergeState to update a slice of state
+    store.mergeState(old => ({ count: old.count + addend }));
   },
 };
 
@@ -60,15 +62,15 @@ In src/components/PlusTwo/PlusTwo.js
 
 ```jsx harmony
 import React from 'react';
-import { useStore } from 'react-store-glider';
 import adderStore from 'stores/adder/adderStore.js';
 
 export function PlusTwo() {
-  const { state, actions } = useStore(adderStore);
+  const state = adderStore.useState();
+  const { add } = adderStore.actions;
 
   return (
     <>
-      <button onClick={() => actions.add(2)}>+2</button>
+      <button onClick={() => add(2)}>+2</button>
       <p>Count: {state.count}</p>
     </>
   );
@@ -79,17 +81,15 @@ Or use a mapState function to rerender only when a subset of state changes.
 
 ```jsx harmony
 import React from 'react';
-import { useStore } from 'react-store-glider';
 import adderStore from 'stores/adder/adderStore.js';
 
 export function PlusTwo() {
-  const { state: count, actions } = useStore(adderStore, {
-    mapState: state => state.count,
-  });
+  const count = adderStore.useSelector(state => state.count);
+  const { add } = adderStore.actions;
 
   return (
     <>
-      <button onClick={() => actions.add(2)}>+2</button>
+      <button onClick={() => add(2)}>+2</button>
       <p>Count: {count}</p>
     </>
   );

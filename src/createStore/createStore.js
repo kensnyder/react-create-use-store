@@ -1,5 +1,7 @@
-const Emitter = require('tiny-emitter');
+const Emitter = require('../Emitter/Emitter.js');
 const isPromise = require('is-promise');
+const useStoreState = require('../useStoreState/useStoreState.js');
+const useStoreSelector = require('../useStoreSelector/useStoreSelector.js');
 
 // an internal counter for stores
 let storeIdx = 1;
@@ -10,18 +12,13 @@ let storeIdx = 1;
  * @property {Object} [config.state] - The store's initial state. It can be of any type.
  * @property {Object} [config.actions] - Named functions that can be dispatched by name and payload.
  * @property {Boolean} [config.autoReset] - If true, reset the store when all consumer components unmount
- * @property {Function} [config.onFirstUse] - Callback the very first time a component calls useStore()
- * @property {Function} [config.afterFirstMount] - Callback when a useStore() component mounts when no other are mounted
- * @property {Function} [config.afterEachMount] - Callback every time a component first calls useStore()
- * @property {Function} [config.afterEachUnmount] - Callback when any useStore() component unmounts
- * @property {Function} [config.afterLastUnmount] - Callback when all user components unmount
- * @property {Function} [config.onException] - Callback when an updater function throws an Error
  * @property {String} [config.id] - The id string for debugging
  * @return {Object} store - Info and methods for working with the store
- * @property {Function} store.state - the current state value
+ * @property {Function} store.getState - the current state value
  * @property {Object} store.actions - Methods that can be called to affect state
  * @property {Function} store.setState - function to set a new state value
- * @property {Function} store.nextState - function that returns a Promise that resolves on next state value
+ * @property {Function} store.mergeState - function to set a new state value
+ * @property {Function<Promise>} store.nextState - function that returns a Promise that resolves on next state value
  * @property {Function} store.reset - Reset the store's state to its original value
  * @property {String} store.id - The id or number of the store
  * @property {Number} store.idx - The index order of the store in order of definition
@@ -35,6 +32,8 @@ function createStore({
   autoReset = false,
   id = null,
 }) {
+  // the current state value
+  let _state;
   // list of setState functions for Components that use this store
   const _setters = [];
   // list of resolve functions for awaiting nextState
@@ -46,25 +45,28 @@ function createStore({
 
   // define the store object,
   // which should normally not be consumed directly
-  const store = Object.assign(new Emitter(), {
-    // the value represented
-    state: initialState,
+  const store = {
+    getState,
     // functions that act on state
     actions,
+    useState,
+    useSelector,
     // an identifier for debugging
     id: String(id || `store-${storeIdx}`),
     // internal counter
     idx: storeIdx++,
-    // set the state and update all components that use this store
+    // set the state and rerender all components that use this store
     setState,
-    // setSync: (values) => store.state = values;
-    // mergeSync: (values) => store.state = ({...store.state, ...values});
+    // set the state without rerendering
+    mergeSync,
     // set partial state
+    setSync,
+    // set partial state without updating components
     mergeState,
     // utility for create an action function that sets a single value
     createSetter,
-    // create a new store with the same initial state and options
-    clone,
+    // // create a new store with the same initial state and options
+    // clone,
     // A store's state can be reset to its original value
     reset,
     // return a Promise that will resolve on next state change
@@ -85,7 +87,10 @@ function createStore({
     _unsubscribe,
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
-  });
+  };
+
+  // mixin on, off, once, emit
+  Object.assign(store, new Emitter(store));
 
   // return this store
   return store;
@@ -93,6 +98,18 @@ function createStore({
   //
   // functions only beyond this point
   //
+
+  function getState() {
+    return _state;
+  }
+
+  function useState() {
+    return useStoreState(store);
+  }
+
+  function useSelector(mapState, equalityFn) {
+    return useStoreSelector(store, mapState, equalityFn);
+  }
 
   /**
    * Return a promise that resolves after the state is next updated for all components
@@ -141,22 +158,34 @@ function createStore({
     }
   }
 
-  function clone(overrides = {}) {
-    return createStore({
-      e: { ...store.e }, // events that have been registered
-      state: initialState,
-      actions,
-      autoReset,
-      ...overrides,
-    });
-  }
+  // function clone() {
+  //   // create a new store with the current values and options
+  //   const copy = createStore({
+  //     state: _state,
+  //     actions,
+  //     autoReset,
+  //     id,
+  //   });
+  //   // re-attach all handlers
+  //   for (const [type, handlers] of Object.entries(store._handlers)) {
+  //     handlers.map(h => copy.on(type, h));
+  //   }
+  //   // return the copy
+  //   return copy;
+  // }
 
+  /**
+   * Reset the store to the initial value
+   * @return {Object}  This store
+   * @chainable
+   */
   function reset() {
     setState(initialState);
+    return store;
   }
 
   /**
-   *
+   * Get the number of mounted components who use this store
    * @return {number}
    * @private
    */
@@ -178,9 +207,9 @@ function createStore({
 
   function setSync(newState) {
     if (typeof newState === 'function') {
-      newState = newState(store.state);
+      newState = newState(_state);
     }
-    store.state = newState;
+    _state = newState;
   }
 
   function mergeState(newState) {
@@ -204,11 +233,16 @@ function createStore({
 
   function mergeSync(newState) {
     if (typeof newState === 'function') {
-      newState = newState(store.state);
+      newState = newState(_state);
     }
-    store.state = { ...store.state, ...newState };
+    _state = { ..._state, ...newState };
   }
 
+  /**
+   * Helper function to create a mergeState function that sets a single prop
+   * @param {String|Number} propName  The name of the property to merge
+   * @return {Function}  A function suitable for passing to store.setState()
+   */
   function createSetter(propName) {
     return function merger(newValue) {
       if (typeof newValue === 'function') {
@@ -217,10 +251,10 @@ function createStore({
           if (isPromise(newValue)) {
             newValue = await newValue;
           }
-          return { ...store.state, [propName]: newValue };
+          return { ..._state, [propName]: newValue };
         });
       } else {
-        store.setState({ ...store.state, [propName]: newValue });
+        store.setState({ ..._state, [propName]: newValue });
       }
     };
   }
@@ -238,24 +272,32 @@ function createStore({
   /**
    * Set any additional options the store may respond to.
    * Options are state values that do not cause re-renders.
-   * @param {*} [options]
+   * @param {Object} [options]  An object with one or more options to override
    * @private
    */
-  function setOptions(options = null) {
-    _options = options;
+  function setOptions(options) {
+    Object.assign(_options, options);
+    return store;
   }
 
-  function plugin(thing) {
-    store.emit('BeforePlugin', thing);
-    thing(store);
-    store.emit('AfterPlugin', thing);
+  /**
+   * Register a plugin
+   * @param {Function} initializer  A function that receives the store
+   * @return {any}
+   */
+  function plugin(initializer) {
+    // TODO: save plugin return value?
+    store.emit('BeforePlugin', initializer);
+    initializer(store);
+    store.emit('AfterPlugin', initializer);
+    return store;
   }
 
   /**
    *
-   * @param prev
-   * @param next
-   * @return {(function(*): void)|*}
+   * @param {*} prev  The previous value of state (needed by useSelector and possibly event handlers)
+   * @param {*} next  The newly updated state value
+   * @return {Function}  A function to run against each setState update
    * @private
    */
   function _updateAffectedComponents(prev, next) {
@@ -280,11 +322,16 @@ function createStore({
     };
   }
 
+  /**
+   * Run all queued setState updates and return the new state
+   * @return {Promise<*>}
+   * @private
+   */
   async function _getNextState() {
-    let nextState = store.state;
+    let nextState = _state;
     // process all updates or update functions
     // use while and shift in case setters trigger more setting
-    let failsafe = 10000;
+    let failsafe = _updateQueue.length + 100;
     while (_updateQueue.length > 0) {
       if (--failsafe === 0) {
         throw new Error(
@@ -305,7 +352,7 @@ function createStore({
   }
 
   /**
-   *
+   * Schedule setState update queue to be processed on next tick
    * @private
    */
   function _scheduleUpdates() {
@@ -313,19 +360,29 @@ function createStore({
     // see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask
     Promise.resolve()
       .then(async () => {
-        const prevState = store.state;
-        store.emit('BeforeSet', prevState);
+        const prevState = _state;
+        const event1 = store.emit('BeforeSet', prevState);
+        if (event1.defaultPrevented) {
+          // handler wants to block setting state
+          _updateQueue.length = 0;
+          return;
+        }
         const nextState = _getNextState();
-        store.emit('BeforeUpdate', nextState);
-        // save final state result
-        store.state = nextState;
+        const event2 = store.emit('BeforeUpdate', nextState);
+        if (event2.defaultPrevented) {
+          // handler wants to block saving new state
+          return;
+        }
+        // save final state result (a handler may have altered the final result)
+        _state = event2.data;
         // update components with no selector or with matching selector
-        _setters.forEach(_updateAffectedComponents(prevState, store.state));
+        _setters.forEach(_updateAffectedComponents(prevState, _state));
         // resolve all `await store.nextState()` calls
-        _nextStateResolvers.forEach(resolver => resolver(store.state));
+        _nextStateResolvers.forEach(resolver => resolver(_state));
         // clear out list of those awaiting
         _nextStateResolvers.length = 0;
-        store.emit('AfterUpdate', prevState, store.state);
+        // announce the final state
+        store.emit('AfterUpdate', { prev: prevState, next: _state });
       })
       .catch(err => store.emit('SetterException', err));
   }

@@ -1,14 +1,14 @@
-// store.plugin(persistWith(localStorage));
+// store.plugin(persistState(localStorage));
 
-function persistWith(storage) {
+function persistState(storage) {
   return function plugin(store) {
     store.on('BeforeInitialState', () => {
-      store.state = storage.getItem(store.id);
-      // OR
-      store.setStateSync(storage.getItem(store.id));
+      store.setSync(storage.getItem(store.id));
     });
-    store.on('AfterUpdate', (prev, next) => {
+    store.on('AfterUpdate', ({ data: { next } }) => {
       storage.setItem(store.id, next);
     });
   };
 }
+
+module.exports = persistState;

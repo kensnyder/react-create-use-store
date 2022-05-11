@@ -1,10 +1,10 @@
-// store.plugin(syncUrl(fields));
-function syncUrl(fields = null, { replace = false }) {
+// store.plugin(syncUrl({ fields }));
+function syncUrl({ fields = null, replace = false }) {
   return function plugin(store) {
     store.on('BeforeInitialState', () => {
-      store.mergeStateSync(readUrl());
+      store.mergeSync(readUrl());
     });
-    store.on('AfterUpdate', (prev, next) => {
+    store.on('AfterUpdate', ({ data: { next } }) => {
       writeUrl(next);
     });
     store.on('AfterLastUnmount', () => {
