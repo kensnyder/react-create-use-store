@@ -4,7 +4,7 @@ const getMapperFunction = require('../getMapperFunction/getMapperFunction.js');
 const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
 /**
- * @param {Object} storeIdOrObj - A store created with createStore()
+ * @param {Object} store - A store created with createStore()
  * @param {Function} [mapState] - Function that returns a slice of data
  * @param {Function} [equalityFn] - Custom equality function that checks if state has change
  * @return {Object} - tools for working with the store
@@ -13,8 +13,7 @@ const storeRegistry = require('../storeRegistry/storeRegistry.js');
  * @property {Function} reset - function to reset the store's state to its initial value
  * @property {Function} nextState - function that returns a Promise that resolves on next state value
  */
-function useStoreState(storeIdOrObj, mapState = null, equalityFn = null) {
-  const store = useMemo(() => storeRegistry.get(storeIdOrObj), [storeIdOrObj]);
+function useStoreState(store, mapState = null, equalityFn = null) {
   // derive and cache the mapState and equalityFn
   const [map, isEqual] = useMemo(() => {
     if (mapState === null && equalityFn === null) {

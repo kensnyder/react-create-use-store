@@ -1,7 +1,7 @@
-const identity = k => k;
+const identity = state => state;
 
 function getMapperFunction(mapState) {
-  if (typeof mapState === 'string') {
+  if (typeof mapState === 'string' || typeof mapState === 'number') {
     return state => state[mapState];
   } else if (Array.isArray(mapState)) {
     return state => {
@@ -17,7 +17,7 @@ function getMapperFunction(mapState) {
     return identity;
   } else {
     throw new Error(
-      'react-storekeeper: "mapState" function must be a function, string, array, or null.'
+      'react-storekeeper: "mapState" function must be a function, string, number, array, or null.'
     );
   }
 }
