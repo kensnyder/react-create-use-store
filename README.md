@@ -1,13 +1,13 @@
-# react-create-use-store
+# react-store-glider
 
-[![Build Status](https://travis-ci.com/kensnyder/react-create-use-store.svg?branch=master&v=3.2.0)](https://travis-ci.com/kensnyder/react-create-use-store)
-[![Code Coverage](https://codecov.io/gh/kensnyder/react-create-use-store/branch/master/graph/badge.svg?v=3.2.0)](https://codecov.io/gh/kensnyder/react-create-use-store)
-[![ISC License](https://img.shields.io/npm/l/react-create-use-store.svg?v3.2.0)](https://opensource.org/licenses/ISC)
+[![Build Status](https://travis-ci.com/kensnyder/react-store-glider.svg?branch=master&v=3.2.0)](https://travis-ci.com/kensnyder/react-store-glider)
+[![Code Coverage](https://codecov.io/gh/kensnyder/react-store-glider/branch/master/graph/badge.svg?v=3.2.0)](https://codecov.io/gh/kensnyder/react-store-glider)
+[![ISC License](https://img.shields.io/npm/l/react-store-glider.svg?v3.2.0)](https://opensource.org/licenses/ISC)
 
 Simple state management for React using hooks
 
 ```bash
-npm install react-create-use-store
+npm install react-store-glider
 ```
 
 ## Table of contents
@@ -22,15 +22,15 @@ npm install react-create-use-store
 
 ## Features
 
-1. Instead of reducers or observables, define action functions
+1. Instead of reducers or observables, define simple action functions with no boilerplate
 1. Store actions are easily testable
 1. Stores can respond to component lifecycle events including unmount
    (e.g. to abort fetching data)
-1. Stores can persist data
 1. A store can be used by one component or many components
 1. Stores are included by only the components that need them
+1. Stores can persist data even if all consumers unmount
 1. Stores allow for natural code splitting
-1. Less than 1kb gzipped
+1. Less than 3kb gzipped
 
 ## Example usage
 
@@ -39,7 +39,7 @@ npm install react-create-use-store
 In src/stores/adder/adderStore.js
 
 ```jsx harmony
-import { createStore } from 'react-create-use-store';
+import { createStore } from 'react-store-glider';
 
 // initial state
 const state = { count: 0 };
@@ -60,7 +60,7 @@ In src/components/PlusTwo/PlusTwo.js
 
 ```jsx harmony
 import React from 'react';
-import { useStore } from 'react-create-use-store';
+import { useStore } from 'react-store-glider';
 import adderStore from 'stores/adder/adderStore.js';
 
 export function PlusTwo() {
@@ -73,6 +73,52 @@ export function PlusTwo() {
     </>
   );
 }
+```
+
+Or use a mapState function to rerender only when a subset of state changes.
+
+```jsx harmony
+import React from 'react';
+import { useStore } from 'react-store-glider';
+import adderStore from 'stores/adder/adderStore.js';
+
+export function PlusTwo() {
+  const { state: count, actions } = useStore(adderStore, {
+    mapState: state => state.count,
+  });
+
+  return (
+    <>
+      <button onClick={() => actions.add(2)}>+2</button>
+      <p>Count: {count}</p>
+    </>
+  );
+}
+```
+
+```js
+const { state, actions } = adderStore.use();
+const { state, actions } = useStore(adderStore);
+const { state, actions } = useStore(adderStore);
+
+const { state: count, actions } = adderStore.use(state => state.count);
+const { state: count, actions } = useStore(adderStore, state => state.count);
+const { state: count, actions } = useStore(adderStore, {
+  mapState: state => state.count,
+});
+
+const count = adderStore.useState(state => state.count);
+const count = useStoreState(adderStore, state => state.count);
+const count = useStoreState(adderStore, {
+  mapState: state => state.count,
+});
+
+const count = adderStore.useState(state => state.count, equalityFn);
+const count = useStoreState(adderStore, state => state.count, equalityFn);
+const count = useStoreState(adderStore, {
+  mapState: state => state.count,
+  equalityFn: equalityFn,
+});
 ```
 
 In src/stores/adder/adderStore.spec.js
@@ -95,7 +141,7 @@ describe('AdderStore', () => {
 In src/stores/story/storyStore.js
 
 ```jsx harmony
-import { createStore } from 'react-create-use-store';
+import { createStore } from 'react-store-glider';
 
 // initial state
 const state = {
@@ -137,6 +183,7 @@ const store = createStore({
   actions,
   afterFirstMount: searchStories,
 });
+
 export default store;
 ```
 
@@ -144,7 +191,7 @@ In src/components/StoryListing/StoryListing.js
 
 ```jsx harmony
 import React, { useState } from 'react';
-import { useStore } from 'react-create-use-store';
+import { useStore } from 'react-store-glider';
 import storyStore from 'stores/StoryStore/StoryStore.js';
 import StoryItem from '../StoryItem.js';
 
@@ -183,7 +230,7 @@ In src/components/StoryItem/StoryItem.js
 
 ```jsx harmony
 import React from 'react';
-import { useStore } from 'react-create-use-store';
+import { useStore } from 'react-store-glider';
 import storyStore from 'stores/story/storyStore.js';
 
 export default function StoryItem({ story }) {
@@ -209,12 +256,13 @@ export default function StoryItem({ story }) {
 components that consume the store through `useStore()`. The `store.setState`
 function can be called with a value that should replace the current state or an
 updater function that will receive old state and return new state. Calling
-`state.setState` will trigger a re-render on all components that consume the
-state.
+`state.setState` will trigger a rerender on all components that consume any
+part of the state that changes.
 
 Note that by default, state persists even when all consumers have unmounted.
 The effect is similar to having a global state that your top level `<App />`
-consumes. To disable persistence, create the state with `autoReset` set to true.
+consumes. To disable persistence, create the state with `autoReset` set to
+`true`.
 
 Many global-state patterns like Redux do not have built-in ways to code split.
 In this library, code splitting can happen naturally because consumers must
@@ -289,4 +337,4 @@ Once you create a store, you can access a few properties directly.
 
 ## Credits
 
-inspired by [@jhonnymichel](https://github.com/jhonnymichel/react-hookstore/blob/6d23d2fcb0e7cf8a3929a01e0c543fe5e05ecf05/src/index.js)
+inspired by [@jhonnymichel's react-hookstore](https://github.com/jhonnymichel/react-hookstore/blob/6d23d2fcb0e7cf8a3929a01e0c543fe5e05ecf05/src/index.js)

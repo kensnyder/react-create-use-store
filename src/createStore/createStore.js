@@ -1,3 +1,4 @@
+const Emitter = require('tiny-emitter');
 const isPromise = require('is-promise');
 const storeRegistry = require('../storeRegistry/storeRegistry.js');
 
@@ -32,15 +33,20 @@ let storeIdx = 1;
 function createStore({
   state: initialState = {},
   actions = {},
+  // persistWith: localStorage,
   autoReset = false,
-  onFirstUse = () => {},
-  afterFirstMount = () => {},
-  afterEachMount = () => {},
-  afterEachUnmount = () => {},
-  afterLastUnmount = () => {},
-  onException = () => {},
+  // onFirstUse = () => {}, AfterFirstUse
+  // afterFirstMount = () => {}, AfterFirstMount
+  // afterEachMount = () => {}, AfterMount
+  // afterEachUnmount = () => {}, AfterUnmount
+  // afterLastUnmount = () => {}, AfterLastUnmount
+  // onException = () => {}, SetterException
+  // BeforeUpdate
+  // AfterUpdate
   id = null,
 }) {
+  // function plugin(thing) { thing(store) }
+
   // list of setState functions for Components that use this store
   const _setters = [];
   // list of resolve functions for awaiting nextState
@@ -52,7 +58,7 @@ function createStore({
 
   // define the store object,
   // which should normally not be consumed directly
-  const store = {
+  const store = Object.assign(new Emitter(), {
     // A store's state can be reset to its original value
     reset: () => _setAll(initialState),
     // the value represented
@@ -61,8 +67,10 @@ function createStore({
     actions,
     // set the state and update all components that use this store
     setState: _setAll,
+    // setSync: (values) => store.state = values;
+    // mergeSync: (values) => store.state = ({...store.state, ...values});
     // set partial state
-    setPartialState: _setPartialAll,
+    mergeState: _setPartialAll,
     // utility for create an action function that sets a single value
     createSetter: _createSetter,
     // create a new store with the same initial state and options
@@ -87,7 +95,7 @@ function createStore({
     _unsubscribe,
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
-  };
+  });
 
   storeRegistry.add(store.id, store);
 
@@ -115,14 +123,14 @@ function createStore({
    */
   function _subscribe(setState) {
     if (store._usedCount++ === 0) {
-      onFirstUse();
+      store.emit('AfterFirstUse');
     }
     if (_setters.length === 0) {
-      afterFirstMount();
+      store.emit('AfterFirstMount');
     }
     if (_setters.indexOf(setState) === -1) {
       _setters.push(setState);
-      afterEachMount();
+      store.emit('AfterMount');
     }
   }
 
@@ -136,26 +144,21 @@ function createStore({
     if (idx > -1) {
       _setters.splice(idx, 1);
     }
-    afterEachUnmount();
+    store.emit('AfterUnmount');
     if (_setters.length === 0) {
       if (autoReset) {
         store.reset();
       }
-      afterLastUnmount();
+      store.emit('AfterLastUnmount');
     }
   }
 
   function _cloneStore(overrides = {}) {
     return createStore({
+      e: { ...store.e }, // events that have been registered
       state: initialState,
       actions,
       autoReset,
-      onFirstUse,
-      afterFirstMount,
-      afterEachMount,
-      afterEachUnmount,
-      afterLastUnmount,
-      onException,
       ...overrides,
     });
   }
@@ -275,9 +278,11 @@ function createStore({
     Promise.resolve()
       .then(async () => {
         const prevState = store.state;
+        store.emit('BeforeSet', prevState);
         let nextState = store.state;
         // process all updates or update functions
-        for (const updatedState of _updateQueue) {
+        while (_updateQueue.length > 0) {
+          const updatedState = _updateQueue.shift();
           if (typeof updatedState === 'function') {
             nextState = updatedState(nextState);
             if (isPromise(nextState)) {
@@ -287,18 +292,18 @@ function createStore({
             nextState = updatedState;
           }
         }
-        // store final state result
+        store.emit('BeforeUpdate', nextState);
+        // save final state result
         store.state = nextState;
-        // clear out the updater queue
-        _updateQueue.length = 0;
         // update components with no selector or with matching selector
         _setters.forEach(_updateAffectedComponents(prevState, store.state));
         // resolve all `await store.nextState()` calls
         _nextStateResolvers.forEach(resolver => resolver(store.state));
         // clear out list of those awaiting
         _nextStateResolvers.length = 0;
+        store.emit('AfterUpdate', prevState, store.state);
       })
-      .catch(onException);
+      .catch(err => store.emit('SetterException', err));
   }
 }
 

@@ -26,6 +26,10 @@ function useStoreState(storeIdOrObj, mapState = null, equalityFn = null) {
 
   // derive the initial state, if different because of mapState or equalityFn
   const initialState = useMemo(() => {
+    if (store.getMountCount() === 0) {
+      store.emit('BeforeInitialState');
+    }
+    // TODO: allow emitted event set initial state; e.g. from localStorage
     return map ? map(store.state) : store.state;
   }, [store, map]);
 
