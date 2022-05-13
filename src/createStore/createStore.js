@@ -10,7 +10,8 @@ let storeIdx = 1;
  * Creates a new store
  * @param {Object} [config] - An object containing the store setup
  * @property {Object} [config.state] - The store's initial state. It can be of any type.
- * @property {Object} [config.actions] - Named functions that can be dispatched by name and payload.
+ * @property {Object} [config.actions] - Named functions that can be dispatched by name and payload
+ * @property {Object} [config.options] - Metadata maintained by the store that does not trigger re-renders
  * @property {Boolean} [config.autoReset] - If true, reset the store when all consumer components unmount
  * @property {String} [config.id] - The id string for debugging
  * @return {Object} store - Info and methods for working with the store
@@ -29,19 +30,18 @@ let storeIdx = 1;
 function createStore({
   state: initialState = {},
   actions = {},
+  options: _options = {},
   autoReset = false,
   id = null,
 }) {
   // the current state value
-  let _state;
+  let _state = initialState;
   // list of setState functions for Components that use this store
   const _setters = [];
   // list of resolve functions for awaiting nextState
   const _nextStateResolvers = [];
   // list of functions that will manipulate state in the next tick
   const _updateQueue = [];
-  // state maintained by the store that does not trigger re-renders
-  let _options = null;
 
   // define the store object,
   // which should normally not be consumed directly
@@ -90,7 +90,13 @@ function createStore({
   };
 
   // mixin on, off, once, emit
-  Object.assign(store, new Emitter(store));
+  const emitter = new Emitter(store);
+  store._handlers = emitter._handlers;
+  store._context = emitter._context;
+  store.on = emitter.on;
+  store.off = emitter.off;
+  store.once = emitter.once;
+  store.emit = emitter.emit;
 
   // return this store
   return store;
@@ -99,15 +105,29 @@ function createStore({
   // functions only beyond this point
   //
 
+  /**
+   * Get the current state of the store
+   * @return {*}
+   */
   function getState() {
     return _state;
   }
 
+  /**
+   * Hook to use the whole state in a component
+   * @return {*}  The full state value
+   */
   function useState() {
     return useStoreState(store);
   }
 
-  function useSelector(mapState, equalityFn) {
+  /**
+   * Hook to use a slice of state in a component
+   * @param {Function} mapState  A function with no side effects that derives a slice of state
+   * @param{Function} equalityFn  A custom function that should return true when two slices differ
+   * @return {*}  The derived state
+   */
+  function useSelector(mapState, equalityFn = null) {
     return useStoreSelector(store, mapState, equalityFn);
   }
 
@@ -170,6 +190,7 @@ function createStore({
   //   for (const [type, handlers] of Object.entries(store._handlers)) {
   //     handlers.map(h => copy.on(type, h));
   //   }
+  //   // TODO: copy options
   //   // return the copy
   //   return copy;
   // }
@@ -194,8 +215,8 @@ function createStore({
   }
 
   /**
-   * Notify each of the setState functions of the new state
-   * @param {*} newState
+   * Set the store's state and notify each affected component
+   * @param {*} newState A value to set or a function that accepts old state and returns new state
    * @private
    */
   function setState(newState) {
@@ -205,6 +226,11 @@ function createStore({
     }
   }
 
+  /**
+   * Set the store's state but do not notify any components
+   * This is useful for plugins that load initial state from localStorage, URL, etc
+   * @param {*} newState  A value to set or a function that accepts old state and returns new state
+   */
   function setSync(newState) {
     if (typeof newState === 'function') {
       newState = newState(_state);
@@ -212,6 +238,11 @@ function createStore({
     _state = newState;
   }
 
+  /**
+   * Extend the store's state and notify each affected component
+   * @param {*} newState A value to set or a function that accepts old state and returns new state
+   * @private
+   */
   function mergeState(newState) {
     let updater;
     if (typeof newState === 'function') {
@@ -231,6 +262,11 @@ function createStore({
     }
   }
 
+  /**
+   * Extend the store's state but do not notify any components
+   * This is useful for plugins that load initial state from localStorage, URL, etc
+   * @param {*} newState  A value to set or a function that accepts old state and returns new state
+   */
   function mergeSync(newState) {
     if (typeof newState === 'function') {
       newState = newState(_state);
@@ -283,11 +319,13 @@ function createStore({
   /**
    * Register a plugin
    * @param {Function} initializer  A function that receives the store
-   * @return {any}
+   * @return {Object}  return this store
    */
   function plugin(initializer) {
-    // TODO: save plugin return value?
-    store.emit('BeforePlugin', initializer);
+    const event = store.emit('BeforePlugin', initializer);
+    if (event.defaultPrevented) {
+      return store;
+    }
     initializer(store);
     store.emit('AfterPlugin', initializer);
     return store;
@@ -356,35 +394,43 @@ function createStore({
    * @private
    */
   function _scheduleUpdates() {
-    // queue state update for next tick
+    // Use Promise to queue state update for next tick
     // see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask
     Promise.resolve()
-      .then(async () => {
-        const prevState = _state;
-        const event1 = store.emit('BeforeSet', prevState);
-        if (event1.defaultPrevented) {
-          // handler wants to block setting state
-          _updateQueue.length = 0;
-          return;
-        }
-        const nextState = _getNextState();
-        const event2 = store.emit('BeforeUpdate', nextState);
-        if (event2.defaultPrevented) {
-          // handler wants to block saving new state
-          return;
-        }
-        // save final state result (a handler may have altered the final result)
-        _state = event2.data;
-        // update components with no selector or with matching selector
-        _setters.forEach(_updateAffectedComponents(prevState, _state));
-        // resolve all `await store.nextState()` calls
-        _nextStateResolvers.forEach(resolver => resolver(_state));
-        // clear out list of those awaiting
-        _nextStateResolvers.length = 0;
-        // announce the final state
-        store.emit('AfterUpdate', { prev: prevState, next: _state });
-      })
+      .then(_runUpdates)
       .catch(err => store.emit('SetterException', err));
+  }
+
+  /**
+   * Run state updates allowing BeforeSet and BeforeUpdate handlers to abort or alter data
+   * @return {Promise<void>}
+   * @private
+   */
+  async function _runUpdates() {
+    const prevState = _state;
+    const event1 = store.emit('BeforeSet', prevState);
+    if (event1.defaultPrevented) {
+      // handler wants to block running state updaters
+      _updateQueue.length = 0;
+      return;
+    }
+    // try {
+    const nextState = await _getNextState();
+    const event2 = store.emit('BeforeUpdate', nextState);
+    if (event2.defaultPrevented) {
+      // handler wants to block saving new state
+      return;
+    }
+    // save final state result (a handler may have altered the final result)
+    _state = event2.data;
+    // update components with no selector or with matching selector
+    _setters.forEach(_updateAffectedComponents(prevState, _state));
+    // resolve all `await store.nextState()` calls
+    _nextStateResolvers.forEach(resolver => resolver(_state));
+    // clear out list of those awaiting
+    _nextStateResolvers.length = 0;
+    // announce the final state
+    store.emit('AfterUpdate', { prev: prevState, next: _state });
   }
 }
 

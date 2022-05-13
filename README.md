@@ -385,17 +385,34 @@ Once you create a store, you can access a few properties directly.
 
 ## Events
 
-// AfterFirstUse
-// AfterFirstMount
-// AfterMount
-// AfterUnmount
-// AfterLastUnmount
-// SetterException
-// BeforeSet
-// BeforeUpdate
-// AfterUpdate
-BeforePlugin
-AfterPlugin
+Stores fire a series of lifecycle events. For example:
+
+```js
+store.on('BeforeInitialState', () => {
+  store.setSync({ my: 'new', initial: 'state' });
+});
+store.on('BeforeUpdate', evt => {
+  if (evt.data.name.length < 4) {
+    alert('name must be at least 4 characters');
+    evt.preventDefault();
+  }
+});
+```
+
+| Event              | Description                                                 | Cancelable? |
+| ------------------ | ----------------------------------------------------------- | ----------- |
+| BeforeInitialState | Can alter initial state for first component that uses state | No          |
+| AfterFirstUse      | Fires after store has been used by the first time           | No          |
+| AfterFirstMount    | Fires after first component mounts                          | No          |
+| AfterMount         | Fires after each component mounts                           | No          |
+| AfterUnmount       | Fires after each component unmounts                         | No          |
+| AfterLastUnmount   | Fires when last component unmounts                          | No          |
+| SetterException    | Fires if a setter function throws an exception              | No          |
+| BeforeSet          | Fires before any queued setter functions run                | Yes         |
+| BeforeUpdate       | Fires before newly calculated state is propagated           | Yes         |
+| AfterUpdate        | Fires after state is finalized but before React re-renders  | Yes         |
+| BeforePlugin       | Fires before a plugin is registered                         | Yes         |
+| AfterPlugin        | Fires after a plugin is registered                          | No          |
 
 ## Plugins
 

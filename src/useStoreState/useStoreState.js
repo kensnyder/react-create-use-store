@@ -26,7 +26,7 @@ function useStoreState(store) {
     return () => store._unsubscribe(setState);
   }, [store, setState]);
 
-  // return that slice or whole bit of state
+  // return the current state
   return state;
 }
 

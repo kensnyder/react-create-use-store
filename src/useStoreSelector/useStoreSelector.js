@@ -27,7 +27,8 @@ function useStoreSelector(store, mapState = null, equalityFn = null) {
     if (store.getMountCount() === 0) {
       store.emit('BeforeInitialState');
     }
-    return map ? map(store.getState()) : store.getState();
+    const fullInitialState = store.getState();
+    return map ? map(fullInitialState) : fullInitialState;
   }, [store, map]);
 
   // use useState to get a method for triggering rerenders in consumer components

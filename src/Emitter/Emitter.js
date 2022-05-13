@@ -6,34 +6,34 @@ class Emitter {
     this._context = context;
   }
 
-  on(name, handler) {
-    if (!this._handlers[name]) {
-      this._handlers[name] = [];
+  on(type, handler) {
+    if (!this._handlers[type]) {
+      this._handlers[type] = [];
     }
-    this._handlers[name].push(handler);
+    this._handlers[type].push(handler);
   }
 
-  off(name, handler) {
-    if (!this._handlers[name]) {
-      this._handlers[name] = [];
+  off(type, handler) {
+    if (!this._handlers[type]) {
+      this._handlers[type] = [];
     }
-    this._handlers[name] = this._handlers[name].filter(h => h !== handler);
+    this._handlers[type] = this._handlers[type].filter(h => h !== handler);
   }
 
-  once(name, handler) {
+  once(type, handler) {
     const onceHandler = event => {
-      this.off(name, onceHandler);
+      this.off(type, onceHandler);
       handler.call(this._context, event);
     };
-    this.on(name, onceHandler);
+    this.on(type, onceHandler);
   }
 
-  emit(name, data) {
-    if (!this._handlers[name] || this._handlers[name].length === 0) {
-      return {};
+  emit(type, data = null) {
+    if (!this._handlers[type] || this._handlers[type].length === 0) {
+      return { data };
     }
-    const event = new PreventableEvent(this._context, name, data);
-    for (const handler of this._handlers) {
+    const event = new PreventableEvent(this._context, type, data);
+    for (const handler of this._handlers[type]) {
       handler.call(this._context, event);
       if (event.propagationStopped) {
         break;
