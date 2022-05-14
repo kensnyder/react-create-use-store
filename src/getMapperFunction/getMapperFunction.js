@@ -13,7 +13,7 @@ function getMapperFunction(mapState) {
     };
   } else if (typeof mapState === 'function') {
     return mapState;
-  } else if (mapState === null) {
+  } else if (mapState === null || mapState === undefined) {
     return identity;
   } else {
     throw new Error(

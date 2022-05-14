@@ -1,6 +1,7 @@
-const scalarTypes = [
+const directlyCompariable = [
   'bigint',
   'boolean',
+  'function',
   'number',
   'string',
   'symbol',
@@ -15,6 +16,7 @@ const scalarTypes = [
  * @return {Boolean} - True if values are shallowly equal
  */
 function defaultEqualityFn(prev, next) {
+  // handle null specially since typeof null === 'object'
   if (prev === null && next === null) {
     // both null
     return true;
@@ -22,8 +24,8 @@ function defaultEqualityFn(prev, next) {
     // one is null but not both
     return false;
   }
-  if (scalarTypes.includes(typeof prev)) {
-    return next === prev;
+  if (directlyCompariable.includes(typeof prev)) {
+    return prev === next;
   }
   if (Array.isArray(prev)) {
     if (!Array.isArray(next)) {
@@ -42,6 +44,10 @@ function defaultEqualityFn(prev, next) {
     }
     return true;
   } else if (typeof prev === 'object') {
+    if (!next || typeof next !== 'object' || Array.isArray(next)) {
+      // one object and one non-object
+      return false;
+    }
     const prevKeys = Object.keys(prev);
     const nextKeys = Object.keys(next);
     if (prevKeys.length !== nextKeys.length) {
@@ -55,6 +61,8 @@ function defaultEqualityFn(prev, next) {
     }
     return true;
   }
+  // some future data type we don't know about
+  /* istanbul ignore next */
   return false;
 }
 

@@ -2,11 +2,11 @@
  * @jest-environment jsdom
  */
 import React, { useState } from 'react';
-import { render, fireEvent, screen, act } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import createStore from '../createStore/createStore.js';
 
-describe('useStoreState(obj)', () => {
+describe('useStoreSelector(mapState)', () => {
   // define store before each test
   let store;
   let PlanetComponent;
@@ -15,7 +15,7 @@ describe('useStoreState(obj)', () => {
   let TripWithEqualityFnComponent;
   let renderCounts;
   beforeEach(() => {
-    const state = { planet: 'Jupiter', rocket: 12 };
+    const state = { planet: 'Jupiter', rocket: 12, seats: ['a', 'b', 'c'] };
     const actions = {
       visit(planet) {
         store.setState(old => ({ ...old, planet }));
@@ -23,11 +23,13 @@ describe('useStoreState(obj)', () => {
       upgradeRocket() {
         store.mergeState(old => ({ rocket: old.rocket + 1 }));
       },
+      pwn(to) {
+        store.setState(to);
+      },
     };
     store = createStore({
       state,
       actions,
-      seats: ['a', 'b', 'c'],
     });
     renderCounts = {
       planet: 0,
@@ -50,10 +52,11 @@ describe('useStoreState(obj)', () => {
     RocketComponent = () => {
       renderCounts.rocket++;
       const rocket = store.useSelector(state => state.rocket);
-      const { upgradeRocket } = store.actions;
+      const { upgradeRocket, pwn } = store.actions;
       return (
         <div className="Rocket">
           <button onClick={upgradeRocket}>Upgrade Rocket</button>
+          <button onClick={() => pwn('hacked')}>Hack it</button>
           <span>rocket={rocket}</span>
         </div>
       );
@@ -116,6 +119,13 @@ describe('useStoreState(obj)', () => {
     expect(getByText('planet=Mars')).toBeInTheDocument();
     expect(getByText('trip2 to Jupiter')).toBeInTheDocument();
   });
+  it('should allow non-function updaters', async () => {
+    const { getByText } = render(<RocketComponent />);
+    await act(() => {
+      fireEvent.click(getByText('Hack it'));
+    });
+    expect(store.getState()).toBe('hacked');
+  });
 });
 describe('store.on(type, handler)', () => {
   // define store before each test
@@ -131,6 +141,9 @@ describe('store.on(type, handler)', () => {
       },
       zoomIn(factor) {
         store.mergeState(old => ({ zoom: old.zoom * factor }));
+      },
+      pwn(newState) {
+        store.setState(newState);
       },
       throw(message) {
         store.setState(() => {
@@ -178,12 +191,33 @@ describe('store.on(type, handler)', () => {
     const { getByText } = render(<TelescopeComponent />);
     expect(getByText('current target=Venus')).toBeInTheDocument();
   });
-  // TODO: AfterFirstUse
+  it('should allow blocking update', async () => {
+    store.on('BeforeUpdate', evt => {
+      evt.preventDefault();
+    });
+    const { getByText } = render(<TelescopeComponent />);
+    await act(() => {
+      fireEvent.click(getByText('Zoom 2x'));
+    });
+    expect(store.getState().zoom).toBe(10);
+  });
+  it('should allow blocking set', async () => {
+    store.on('BeforeSet', evt => {
+      evt.preventDefault();
+    });
+    const { getByText } = render(<TelescopeComponent />);
+    await act(() => {
+      fireEvent.click(getByText('Zoom 2x'));
+    });
+    expect(store.getState().zoom).toBe(10);
+  });
   it('should fire mount/unmount events properly', async () => {
+    let afterFirstUse = false;
     let firstMountCount = 0;
     let mountCount = 0;
     let unmountCount = 0;
     let lastUnmountCount = 0;
+    store.on('AfterFirstUse', () => (afterFirstUse = true));
     store.on('AfterFirstMount', () => firstMountCount++);
     store.on('AfterMount', () => mountCount++);
     store.on('AfterUnmount', () => unmountCount++);
@@ -198,6 +232,7 @@ describe('store.on(type, handler)', () => {
         </Toggleable>
       </>
     );
+    expect(afterFirstUse).toBe(false);
     expect(firstMountCount).toBe(0);
     expect(mountCount).toBe(0);
     expect(unmountCount).toBe(0);
@@ -205,6 +240,7 @@ describe('store.on(type, handler)', () => {
     await act(() => {
       fireEvent.click(getByText('Show 1'));
     });
+    expect(afterFirstUse).toBe(true);
     expect(firstMountCount).toBe(1);
     expect(mountCount).toBe(1);
     expect(unmountCount).toBe(0);
@@ -212,6 +248,7 @@ describe('store.on(type, handler)', () => {
     await act(() => {
       fireEvent.click(getByText('Show 2'));
     });
+    expect(afterFirstUse).toBe(true);
     expect(firstMountCount).toBe(1);
     expect(mountCount).toBe(2);
     expect(unmountCount).toBe(0);
@@ -219,6 +256,7 @@ describe('store.on(type, handler)', () => {
     await act(() => {
       fireEvent.click(getByText('Hide 2'));
     });
+    expect(afterFirstUse).toBe(true);
     expect(firstMountCount).toBe(1);
     expect(mountCount).toBe(2);
     expect(unmountCount).toBe(1);
@@ -226,6 +264,7 @@ describe('store.on(type, handler)', () => {
     await act(() => {
       fireEvent.click(getByText('Hide 1'));
     });
+    expect(afterFirstUse).toBe(true);
     expect(firstMountCount).toBe(1);
     expect(mountCount).toBe(2);
     expect(unmountCount).toBe(2);

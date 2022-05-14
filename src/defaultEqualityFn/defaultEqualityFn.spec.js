@@ -9,6 +9,14 @@ describe('defaultEqualityFn', () => {
     const res = isEqual(null, 5);
     expect(res).toBe(false);
   });
+  it('should consider undefined to be equal', () => {
+    const res = isEqual(undefined, undefined);
+    expect(res).toBe(true);
+  });
+  it('should consider undefined to be unequal to anything else', () => {
+    const res = isEqual(undefined, 5);
+    expect(res).toBe(false);
+  });
   it('should handle equal bigints', () => {
     const res = isEqual(1n, 1n);
     expect(res).toBe(true);
@@ -62,6 +70,10 @@ describe('defaultEqualityFn', () => {
     const res = isEqual([1, 2, 3], [1, 2, 3]);
     expect(res).toBe(true);
   });
+  it('should handle arrays, non-array', () => {
+    const res = isEqual([1, 2, 3], false);
+    expect(res).toBe(false);
+  });
   it('should handle arrays of different sizes', () => {
     const res = isEqual([1, 2, 3], []);
     expect(res).toBe(false);
@@ -92,6 +104,24 @@ describe('defaultEqualityFn', () => {
     const obj1 = {};
     const obj2 = {};
     const res = isEqual({ a: obj1, b: obj2 }, { a: obj1, b: obj2 });
+    expect(res).toBe(true);
+  });
+  it('should handle object and non-object', () => {
+    const res = isEqual({ a: 1, b: 2 }, null);
+    expect(res).toBe(false);
+  });
+  it('should handle object and array', () => {
+    const res = isEqual({}, []);
+    expect(res).toBe(false);
+  });
+  it('should say functions are equal', () => {
+    const fn = () => {};
+    const res = isEqual(fn, fn);
+    expect(res).toBe(true);
+  });
+  it('should say symbols are', () => {
+    const fn = () => {};
+    const res = isEqual(fn, fn);
     expect(res).toBe(true);
   });
 });

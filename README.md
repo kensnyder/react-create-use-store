@@ -411,6 +411,7 @@ store.on('BeforeUpdate', evt => {
 | BeforeSet          | Fires before any queued setter functions run                | Yes         |
 | BeforeUpdate       | Fires before newly calculated state is propagated           | Yes         |
 | AfterUpdate        | Fires after state is finalized but before React re-renders  | Yes         |
+| BeforeReset        | Fires before state is reset (by reset() or by autoReset)    | Yes         |
 | BeforePlugin       | Fires before a plugin is registered                         | Yes         |
 | AfterPlugin        | Fires after a plugin is registered                          | No          |
 

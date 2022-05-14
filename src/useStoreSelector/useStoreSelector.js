@@ -15,9 +15,6 @@ const getMapperFunction = require('../getMapperFunction/getMapperFunction.js');
 function useStoreSelector(store, mapState = null, equalityFn = null) {
   // derive and cache the mapState and equalityFn
   const [map, isEqual] = useMemo(() => {
-    if (mapState === null && equalityFn === null) {
-      return [null, null];
-    }
     return [getMapperFunction(mapState), equalityFn || defaultEqualityFn];
     // assume "mapState" and "equalityFn" args are stable like redux does
   }, []);

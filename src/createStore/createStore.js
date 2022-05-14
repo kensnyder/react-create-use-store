@@ -47,8 +47,6 @@ function createStore({
   // which should normally not be consumed directly
   const store = {
     getState,
-    // functions that act on state
-    actions,
     useState,
     useSelector,
     // an identifier for debugging
@@ -97,6 +95,15 @@ function createStore({
   store.off = emitter.off;
   store.once = emitter.once;
   store.emit = emitter.emit;
+
+  store.actions = {};
+  for (const [name, fn] of Object.entries(actions)) {
+    if (typeof fn === 'function') {
+      store.actions[name] = fn;
+    } else {
+      store.actions[name] = createSetter(fn);
+    }
+  }
 
   // return this store
   return store;
@@ -190,7 +197,7 @@ function createStore({
   //   for (const [type, handlers] of Object.entries(store._handlers)) {
   //     handlers.map(h => copy.on(type, h));
   //   }
-  //   // TODO: copy options
+  //   // TODO: copy options??
   //   // return the copy
   //   return copy;
   // }
@@ -201,7 +208,19 @@ function createStore({
    * @chainable
    */
   function reset() {
-    setState(initialState);
+    const current = _state;
+    const event = store.emit('BeforeReset', {
+      before: current,
+      after: initialState,
+    });
+    if (event.defaultPrevented) {
+      return store;
+    }
+    setState(event.data.after);
+    store.emit('AfterReset', {
+      before: current,
+      after: event.data.after,
+    });
     return store;
   }
 
@@ -275,23 +294,29 @@ function createStore({
   }
 
   /**
-   * Helper function to create a mergeState function that sets a single prop
-   * @param {String|Number} propName  The name of the property to merge
+   * Helper function to create a mergeState function that directly sets one or more props
+   * @param {String|Number|String[]|Number[]} propNameOrNames  The name of the property to merge
    * @return {Function}  A function suitable for passing to store.setState()
    */
-  function createSetter(propName) {
-    return function merger(newValue) {
-      if (typeof newValue === 'function') {
-        store.setState(async state => {
-          newValue = newValue(state[propName]);
-          if (isPromise(newValue)) {
-            newValue = await newValue;
-          }
-          return { ..._state, [propName]: newValue };
-        });
-      } else {
-        store.setState({ ..._state, [propName]: newValue });
+  function createSetter(propNameOrNames) {
+    const propNames = Array.isArray(propNameOrNames)
+      ? propNameOrNames
+      : [propNameOrNames];
+    return async function merger(...newValues) {
+      const toAwait = [];
+      for (let i = 0, len = propNames.length; i < len; i++) {
+        if (typeof newValues[i] === 'function') {
+          toAwait.push(newValues[i](_state[propNames[i]]));
+        } else {
+          toAwait.push(newValues[i]);
+        }
       }
+      const awaited = await Promise.all(toAwait);
+      const toMerge = {};
+      for (let i = 0, len = propNames.length; i < len; i++) {
+        toMerge[propNames[i]] = awaited[i];
+      }
+      store.mergeState(toMerge);
     };
   }
 
@@ -350,6 +375,7 @@ function createStore({
         }
       } else if (typeof setter.equalityFn === 'function') {
         // component wants updates when equalityFn returns false
+        /* istanbul ignore next */
         if (!setter.equalityFn(prev, next)) {
           setter(next);
         }
@@ -372,6 +398,7 @@ function createStore({
     let failsafe = _updateQueue.length + 100;
     while (_updateQueue.length > 0) {
       if (--failsafe === 0) {
+        /* istanbul ignore next */
         throw new Error(
           `react-storekeeper: Too many setState calls in queue; probably an infinite loop.`
         );
