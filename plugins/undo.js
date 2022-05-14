@@ -1,3 +1,7 @@
+//
+// TO USE:
+// store.plugin(undoable({ maxSize: 100 }));
+//
 function undoable({ maxSize = 100 }) {
   return function plugin(store) {
     let currIndex = 0;
@@ -37,20 +41,9 @@ function undoable({ maxSize = 100 }) {
           `react-storekeeper: undoable plugin invalid history index ${idx}; history size is ${history.length}.`
         );
       }
-      // TODO: check if valid index?
       store.setState(history[toIndex]);
     }
   };
 }
 
 module.exports = undoable;
-
-// class Undoable {
-//   undo;
-//   redo;
-//   jump;
-//   jumpTo;
-//   attach() {}
-// }
-//
-// const undo = new Undoable(options).attach(store);

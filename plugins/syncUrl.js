@@ -1,4 +1,7 @@
-// store.plugin(syncUrl({ fields }));
+//
+// TO USE:
+// store.plugin(syncUrl({ fields: ['term', 'sort'] }));
+//
 function syncUrl({ fields = null, replace = false }) {
   return function plugin(store) {
     store.on('BeforeInitialState', () => {
@@ -38,7 +41,7 @@ function syncUrl({ fields = null, replace = false }) {
   function clearUrl() {
     const params = new URLSearchParams(window.location.search);
     for (const field of fields || params.keys()) {
-      params.remove(field, fullState[field]);
+      params.remove(field, params.get(field));
     }
     const search = '?' + params.toString();
     if (replace) {
