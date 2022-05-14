@@ -23,12 +23,28 @@ describe('Emitter', () => {
     });
     emitter.emit('test', foo);
   });
+  it('should return basic object from emit()', () => {
+    const foo = {};
+    const emitter = new Emitter(foo);
+    const evt = emitter.emit('test', foo);
+    expect(evt.data).toBe(foo);
+    expect(evt.type).toBe('test');
+  });
+  it('should return a Preventable event from emit()', () => {
+    const foo = {};
+    const emitter = new Emitter(foo);
+    emitter.on('test', () => {});
+    const evt = emitter.emit('test', foo);
+    expect(evt).toBeInstanceOf(PreventableEvent);
+    expect(evt.target).toBe(foo);
+    expect(evt.type).toBe('test');
+  });
   it('should return the event from emit()', () => {
     const foo = {};
     const emitter = new Emitter(foo);
     const evt = emitter.emit('test', foo);
-    expect(evt).toBeInstanceOf(PreventableEvent);
-    expect(evt.target).toBe(foo);
+    expect(evt).toBeInstanceOf(Object);
+    expect(evt.data).toBe(foo);
     expect(evt.type).toBe('test');
   });
   it('should allow preventing default', () => {

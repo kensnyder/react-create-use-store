@@ -29,10 +29,10 @@ class Emitter {
   }
 
   emit(type, data = null) {
-    const event = new PreventableEvent(this._context, type, data);
     if (!this._handlers[type] || this._handlers[type].length === 0) {
-      return event;
+      return { type, data };
     }
+    const event = new PreventableEvent(this._context, type, data);
     for (const handler of this._handlers[type]) {
       handler.call(this._context, event);
       if (event.propagationStopped) {
