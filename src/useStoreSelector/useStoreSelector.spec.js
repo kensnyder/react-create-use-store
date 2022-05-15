@@ -5,6 +5,8 @@ import React, { useState } from 'react';
 import { render, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import createStore from '../createStore/createStore.js';
+import useStoreState from '../useStoreState/useStoreState.js';
+import useStoreSelector from './useStoreSelector.js';
 
 describe('useStoreSelector(mapState)', () => {
   // define store before each test
@@ -39,7 +41,7 @@ describe('useStoreSelector(mapState)', () => {
     };
     PlanetComponent = () => {
       renderCounts.planet++;
-      const planet = store.useSelector(state => state.planet);
+      const planet = useStoreSelector(store, state => state.planet);
       const { visit } = store.actions;
       return (
         <div className="Planet">
@@ -51,7 +53,7 @@ describe('useStoreSelector(mapState)', () => {
     };
     RocketComponent = () => {
       renderCounts.rocket++;
-      const rocket = store.useSelector(state => state.rocket);
+      const rocket = useStoreSelector(store, state => state.rocket);
       const { upgradeRocket, pwn } = store.actions;
       return (
         <div className="Rocket">
@@ -63,7 +65,7 @@ describe('useStoreSelector(mapState)', () => {
     };
     TripComponent = () => {
       renderCounts.trip++;
-      const state = store.useState();
+      const state = useStoreState(store);
       return (
         <div className="Trip">
           <span>trip on {state.rocket}</span>
@@ -73,7 +75,7 @@ describe('useStoreSelector(mapState)', () => {
     };
     TripWithEqualityFnComponent = () => {
       renderCounts.trip2++;
-      const state = store.useSelector(null, (prev, next) => true);
+      const state = useStoreSelector(store, null, (prev, next) => true);
       return (
         <div className="TripWithEqualityFnComponent">
           <span>trip2 on {state.rocket}</span>
@@ -134,7 +136,7 @@ describe('store.on(type, handler)', () => {
   let Toggleable;
   let renderCounts;
   beforeEach(() => {
-    const state = { target: 'moon', zoom: 10 };
+    const state = { target: 'moon', zoom: 10, seats: ['a', 'b', 'c'] };
     const actions = {
       pointAt(target) {
         store.mergeState({ target });
@@ -154,7 +156,6 @@ describe('store.on(type, handler)', () => {
     store = createStore({
       state,
       actions,
-      seats: ['a', 'b', 'c'],
     });
     renderCounts = {
       telescope: 0,
@@ -162,7 +163,7 @@ describe('store.on(type, handler)', () => {
     };
     TelescopeComponent = () => {
       renderCounts.telescope++;
-      const state = store.useState();
+      const state = useStoreState(store);
       const { pointAt, zoomIn } = store.actions;
       return (
         <div className="Telescope">

@@ -84,7 +84,7 @@ import React from 'react';
 import adderStore from 'stores/adder/adderStore.js';
 
 export function PlusTwo() {
-  const count = adderStore.useSelector(state => state.count);
+  const count = useStoreSelector(adderStore, state => state.count);
   const { add } = adderStore.actions;
 
   return (

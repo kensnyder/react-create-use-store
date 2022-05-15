@@ -4,6 +4,8 @@
 import React, { useState } from 'react';
 import { render, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import useStoreState from '../useStoreState/useStoreState.js';
+import { fieldSetter, fieldListSetter } from '../createSetter/createSetter.js';
 const createStore = require('./createStore.js');
 
 describe('createStore()', () => {
@@ -16,8 +18,8 @@ describe('createStore()', () => {
   it('should make setters from actions', async () => {
     const store = createStore({
       actions: {
-        setAge: 'age',
-        setName: ['fname', 'lname'],
+        setAge: fieldSetter('age'),
+        setName: fieldListSetter(['fname', 'lname']),
       },
     });
     const { setAge, setName } = store.actions;
@@ -38,7 +40,7 @@ describe('createStore()', () => {
     const store = createStore({
       state: { age: 10 },
       actions: {
-        setAge: 'age',
+        setAge: fieldSetter('age'),
       },
     });
     const { setAge } = store.actions;
@@ -124,8 +126,8 @@ describe('createStore(specs)', () => {
   beforeEach(() => {
     const state = { page: 1, sort: '-date' };
     const actions = {
-      setPage: 'page',
-      setSort: 'sort',
+      setPage: fieldSetter('page'),
+      setSort: fieldSetter('sort'),
     };
     store = createStore({
       state,
@@ -133,7 +135,7 @@ describe('createStore(specs)', () => {
       autoReset: true,
     });
     ListComponent = () => {
-      const state = store.useState();
+      const state = useStoreState(store);
       const { setPage } = store.actions;
       return (
         <div className="List">

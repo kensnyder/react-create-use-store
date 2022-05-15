@@ -1,7 +1,5 @@
 const Emitter = require('../Emitter/Emitter.js');
 const isPromise = require('is-promise');
-const useStoreState = require('../useStoreState/useStoreState.js');
-const useStoreSelector = require('../useStoreSelector/useStoreSelector.js');
 
 // an internal counter for stores
 let storeIdx = 1;
@@ -15,12 +13,13 @@ let storeIdx = 1;
  * @property {Boolean} [config.autoReset] - If true, reset the store when all consumer components unmount
  * @property {String} [config.id] - The id string for debugging
  * @return {Object} store - Info and methods for working with the store
- * @property {Function} store.getState - the current state value
+ * @property {Function} store.getState - Return the current state value
  * @property {Object} store.actions - Methods that can be called to affect state
  * @property {Function} store.setState - function to set a new state value
  * @property {Function} store.mergeState - function to set a new state value
  * @property {Function<Promise>} store.nextState - function that returns a Promise that resolves on next state value
  * @property {Function} store.reset - Reset the store's state to its original value
+ * @property {Function} store.plugin - Pass a plugin to extend the store's functionality
  * @property {String} store.id - The id or number of the store
  * @property {Number} store.idx - The index order of the store in order of definition
  * @property {Function} store._subscribe - A method to add a setState callback that should be notified on changes
@@ -47,8 +46,6 @@ function createStore({
   // which should normally not be consumed directly
   const store = {
     getState,
-    useState,
-    useSelector,
     // an identifier for debugging
     id: String(id || `store-${storeIdx}`),
     // internal counter
@@ -61,8 +58,6 @@ function createStore({
     setSync,
     // set partial state without updating components
     mergeState,
-    // utility for create an action function that sets a single value
-    createSetter,
     // // create a new store with the same initial state and options
     // clone,
     // A store's state can be reset to its original value
@@ -79,9 +74,9 @@ function createStore({
     plugin,
     // number of components that are currently using this store
     mountCount: 0,
-    // private: useStore() can subscribe to all store changes
+    // private: allows components to subscribe to all store changes
     _subscribe,
-    // private: useStore() can unsubscribe from changes
+    // private: allows components to unsubscribe from changes
     _unsubscribe,
     // private: A count of the number of times this store has ever been used
     _usedCount: 0,
@@ -98,11 +93,7 @@ function createStore({
 
   store.actions = {};
   for (const [name, fn] of Object.entries(actions)) {
-    if (typeof fn === 'function') {
-      store.actions[name] = fn;
-    } else {
-      store.actions[name] = createSetter(fn);
-    }
+    store.actions[name] = fn.bind(store);
   }
 
   // return this store
@@ -121,24 +112,6 @@ function createStore({
   }
 
   /**
-   * Hook to use the whole state in a component
-   * @return {*}  The full state value
-   */
-  function useState() {
-    return useStoreState(store);
-  }
-
-  /**
-   * Hook to use a slice of state in a component
-   * @param {Function} mapState  A function with no side effects that derives a slice of state
-   * @param{Function} equalityFn  A custom function that should return true when two slices differ
-   * @return {*}  The derived state
-   */
-  function useSelector(mapState, equalityFn = null) {
-    return useStoreSelector(store, mapState, equalityFn);
-  }
-
-  /**
    * Return a promise that resolves after the state is next updated for all components
    * @return {Promise<Object>}  Promise that resolves to the new state
    */
@@ -150,7 +123,7 @@ function createStore({
 
   /**
    * Add a setState function to notify when state changes
-   * @param {Function} setState - Function returned from the useState() inside useStore()
+   * @param {Function} setState - Function returned from the useState() inside useStoreState()
    * @private
    */
   function _subscribe(setState) {
@@ -168,7 +141,7 @@ function createStore({
 
   /**
    * Remove a setState function from notification when state changes
-   * @param {Function} setState - Function returned from the useState() inside useStore()
+   * @param {Function} setState - Function returned from the useState() inside useStoreState()
    * @private
    */
   function _unsubscribe(setState) {
@@ -204,14 +177,15 @@ function createStore({
 
   /**
    * Reset the store to the initial value
+   * @param {Object} withOverrides  An object with values to override the initial state
    * @return {Object}  This store
    * @chainable
    */
-  function reset() {
+  function reset(withOverrides = {}) {
     const current = _state;
     const event = store.emit('BeforeReset', {
       before: current,
-      after: initialState,
+      after: { ...initialState, ...withOverrides },
     });
     if (event.defaultPrevented) {
       return store;
@@ -291,33 +265,6 @@ function createStore({
       newState = newState(_state);
     }
     _state = { ..._state, ...newState };
-  }
-
-  /**
-   * Helper function to create a mergeState function that directly sets one or more props
-   * @param {String|Number|String[]|Number[]} propNameOrNames  The name of the property to merge
-   * @return {Function}  A function suitable for passing to store.setState()
-   */
-  function createSetter(propNameOrNames) {
-    const propNames = Array.isArray(propNameOrNames)
-      ? propNameOrNames
-      : [propNameOrNames];
-    return async function merger(...newValues) {
-      const toAwait = [];
-      for (let i = 0, len = propNames.length; i < len; i++) {
-        if (typeof newValues[i] === 'function') {
-          toAwait.push(newValues[i](_state[propNames[i]]));
-        } else {
-          toAwait.push(newValues[i]);
-        }
-      }
-      const awaited = await Promise.all(toAwait);
-      const toMerge = {};
-      for (let i = 0, len = propNames.length; i < len; i++) {
-        toMerge[propNames[i]] = awaited[i];
-      }
-      store.mergeState(toMerge);
-    };
   }
 
   /**

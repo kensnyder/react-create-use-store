@@ -9,7 +9,7 @@ const { useState, useEffect, useMemo } = require('react');
  * @property {Function} nextState - function that returns a Promise that resolves on next state value
  */
 function useStoreState(store) {
-  // derive the initial state, in case plugins are running
+  // derive the initial state, in case plugins are injecting initial state
   const initialState = useMemo(() => {
     if (store.getMountCount() === 0) {
       store.emit('BeforeInitialState');

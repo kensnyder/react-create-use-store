@@ -4,7 +4,7 @@ const getMapperFunction = require('../getMapperFunction/getMapperFunction.js');
 
 /**
  * @param {Object} store - A store created with createStore()
- * @param {Function} [mapState] - Function that returns a slice of data
+ * @param {Function|String|String[]} [mapState] - Function that returns a slice of data
  * @param {Function} [equalityFn] - Custom equality function that checks if state has change
  * @return {Object} - tools for working with the store
  * @property {*} state - The value in the store
