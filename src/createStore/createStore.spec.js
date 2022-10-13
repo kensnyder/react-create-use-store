@@ -71,4 +71,15 @@ describe('createStore()', () => {
       done();
     }, 50);
   });
+  it('should allow flushing synchronously', () => {
+    const add = addend => {
+      const updater = old => ({ ...old, total: old.total + addend });
+      store.setState(updater, { flush: true });
+    };
+    const state = { foo: 'bar', total: 5 };
+    const actions = { add };
+    const store = createStore({ state, actions });
+    store.actions.add(3);
+    expect(store.state).toEqual({ foo: 'bar', total: 8 });
+  });
 });

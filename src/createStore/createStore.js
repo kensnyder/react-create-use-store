@@ -56,6 +56,8 @@ function createStore({
     setState: _setAll,
     // return a Promise that will be resolve on next state change
     nextState,
+    // synchronously update state
+    flushState,
     // functions that act on state
     actions,
     // options that a component can pass to store without re-rendering
@@ -134,7 +136,7 @@ function createStore({
    * @param {*} newState
    * @private
    */
-  function _setAll(newState) {
+  function _setAll(newState, options = { flush: false }) {
     let updater;
     if (typeof newState === 'function') {
       updater = newState;
@@ -142,7 +144,9 @@ function createStore({
       updater = () => newState;
     }
     _updaterFunctionQueue.push(updater);
-    if (_updaterFunctionQueue.length === 1) {
+    if (options.flush) {
+      flushState();
+    } else if (_updaterFunctionQueue.length === 1) {
       _scheduleUpdates();
     }
   }
@@ -158,26 +162,33 @@ function createStore({
   }
 
   /**
-   *
+   * Update state on next tick
    * @private
    */
   function _scheduleUpdates() {
     // queue state update for next tick
     // see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask
-    Promise.resolve()
-      .then(async () => {
-        // run all updaters
-        _updaterFunctionQueue.forEach(
-          updater => (store.state = updater(store.state))
-        );
-        _updaterFunctionQueue.length = 0;
-        // update all components
-        _setters.forEach(setter => setter(store.state));
-        // resolve all `await store.nextState()` calls
-        _nextStateResolvers.forEach(resolver => resolver(store.state));
-        _nextStateResolvers.length = 0;
-      })
-      .catch(onException);
+    Promise.resolve().then(flushState);
+  }
+
+  /**
+   * Update state
+   */
+  function flushState() {
+    try {
+      // run all updaters
+      _updaterFunctionQueue.forEach(
+        updater => (store.state = updater(store.state))
+      );
+      _updaterFunctionQueue.length = 0;
+      // update all components
+      _setters.forEach(setter => setter(store.state));
+      // resolve all `await store.nextState()` calls
+      _nextStateResolvers.forEach(resolver => resolver(store.state));
+      _nextStateResolvers.length = 0;
+    } catch (e) {
+      onException(e);
+    }
   }
 }
 
